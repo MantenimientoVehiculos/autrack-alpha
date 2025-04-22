@@ -31,10 +31,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     // Cargar usuario desde el storage
-    const loadUser = () => {
+    const loadUser = async () => {
         setIsLoading(true);
         try {
-            const currentUser = authApi.getCurrentUser();
+            const currentUser = await authApi.getCurrentUser();
             setUser(currentUser);
         } catch (err) {
             setError('Error al cargar datos de usuario');

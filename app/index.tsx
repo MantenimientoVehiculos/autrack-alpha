@@ -1,7 +1,7 @@
 // app/index.tsx
 import React, { useEffect } from 'react';
 import { Redirect } from 'expo-router';
-import { useAuth } from '../modules/auth';
+import { useAuth } from '../src/modules/auth/context/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function Home() {

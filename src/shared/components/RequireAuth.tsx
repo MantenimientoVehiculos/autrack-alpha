@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-import { useAuth } from '@/src/modules/auth';
+import { useAuth } from '@/src/modules/auth/context/AuthContext';
 
 interface RequireAuthProps {
     children: React.ReactNode;

@@ -54,6 +54,7 @@ const tokens = createTokens({
         $4: 24,
         $5: 32,
         $6: 40,
+        true: 16,
     },
     size: {
         $0: 0,
@@ -63,6 +64,7 @@ const tokens = createTokens({
         $4: 24,
         $5: 32,
         $6: 40,
+        true: 16,
     },
     radius: {
         $0: 0,
@@ -71,6 +73,7 @@ const tokens = createTokens({
         $3: 16,
         $4: 24,
         $5: 32,
+        true: 16,
     },
 });
 

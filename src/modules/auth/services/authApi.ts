@@ -1,6 +1,6 @@
 // src/modules/Auth/services/authApi.ts
-import { apiClient } from "@/src/shared/theme/api/client";
-import { storage } from "@/src/shared/theme/api/client";
+import apiClient from "@/src/shared/api/client";
+import storage from "@/src/shared/storage";
 
 // Tipos para la autenticación
 export interface User {
@@ -43,8 +43,7 @@ class AuthApi {
         const response = await apiClient.post<AuthResponse>('/auth/register', userData, false);
 
         if (response.data) {
-            // Guardar token y datos de usuario en el storage
-            this.saveAuthData(response.data);
+            await this.saveAuthData(response.data);
         }
 
         return response;
@@ -55,8 +54,7 @@ class AuthApi {
         const response = await apiClient.post<AuthResponse>('/auth/login', credentials, false);
 
         if (response.data) {
-            // Guardar token y datos de usuario en el storage
-            this.saveAuthData(response.data);
+            await this.saveAuthData(response.data);
         }
 
         return response;
@@ -73,26 +71,26 @@ class AuthApi {
     }
 
     // Cerrar sesión
-    logout() {
-        // Limpiar datos de autenticación
-        storage.delete('auth_token');
-        storage.delete('user_data');
+    async logout() {
+        await storage.delete('auth_token');
+        await storage.delete('user_data');
     }
 
     // Guardar datos de autenticación
-    private saveAuthData(authData: AuthResponse) {
-        storage.set('auth_token', authData.token);
-        storage.set('user_data', JSON.stringify(authData.user));
+    private async saveAuthData(authData: AuthResponse) {
+        await storage.set('auth_token', authData.token);
+        await storage.set('user_data', JSON.stringify(authData.user));
     }
 
     // Verificar si hay una sesión activa
-    isAuthenticated(): boolean {
-        return !!storage.getString('auth_token');
+    async isAuthenticated(): Promise<boolean> {
+        const token = await storage.get('auth_token');
+        return !!token;
     }
 
     // Obtener datos del usuario actual
-    getCurrentUser(): User | null {
-        const userData = storage.getString('user_data');
+    async getCurrentUser(): Promise<User | null> {
+        const userData = await storage.get('user_data');
         if (userData) {
             return JSON.parse(userData);
         }
