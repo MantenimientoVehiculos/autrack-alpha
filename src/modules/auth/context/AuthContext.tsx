@@ -1,195 +1,156 @@
 // src/modules/Auth/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authApi, User, LoginCredentials, RegisterData, ForgotPasswordData, ResetPasswordData } from '../services/authApi';
+import {
+    authApi,
+    User,
+    LoginCredentials,
+    RegisterData,
+    ForgotPasswordData,
+    ResetPasswordData,
+} from '../services/authApi';
 
-// Interfaz para el contexto de autenticación
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (credentials: LoginCredentials) => Promise<boolean>;
     register: (userData: RegisterData) => Promise<boolean>;
-    logout: () => void;
-    forgotPassword: (data: ForgotPasswordData) => Promise<{ success: boolean; message: string }>;
-    resetPassword: (data: ResetPasswordData) => Promise<{ success: boolean; message: string }>;
+    logout: () => Promise<void>;
+    forgotPassword: (
+        data: ForgotPasswordData
+    ) => Promise<{ success: boolean; message: string }>;
+    resetPassword: (
+        data: ResetPasswordData
+    ) => Promise<{ success: boolean; message: string }>;
     error: string | null;
     clearError: () => void;
 }
 
-// Crear el contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Proveedor del contexto
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Cargar usuario al inicio
+    // Al montar, cargamos usuario si existe
     useEffect(() => {
-        loadUser();
+        (async () => {
+            setIsLoading(true);
+            try {
+                const currentUser = await authApi.getCurrentUser();
+                setUser(currentUser);
+            } catch (err) {
+                console.error(err);
+                setError('Error al cargar usuario');
+            } finally {
+                setIsLoading(false);
+            }
+        })();
     }, []);
 
-    // Cargar usuario desde el storage
-    const loadUser = async () => {
-        setIsLoading(true);
-        try {
-            const currentUser = await authApi.getCurrentUser();
-            setUser(currentUser);
-        } catch (err) {
-            setError('Error al cargar datos de usuario');
-            console.error(err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Iniciar sesión
     const login = async (credentials: LoginCredentials): Promise<boolean> => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const response = await authApi.login(credentials);
-
-            if (response.error) {
-                setError(response.error.message);
-                return false;
-            }
-
-            if (response.data) {
-                setUser(response.data.user);
-                return true;
-            }
-
-            return false;
-        } catch (err) {
-            setError('Error durante el inicio de sesión');
+            const { user: u } = await authApi.login(credentials);
+            setUser(u);
+            return true;
+        } catch (err: any) {
             console.error(err);
+            setError(err.message || 'Error durante inicio de sesión');
             return false;
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Registrar usuario
     const register = async (userData: RegisterData): Promise<boolean> => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const response = await authApi.register(userData);
-
-            if (response.error) {
-                setError(response.error.message);
-                return false;
-            }
-
-            if (response.data) {
-                setUser(response.data.user);
-                return true;
-            }
-
-            return false;
-        } catch (err) {
-            setError('Error durante el registro');
+            const { user: u } = await authApi.register(userData);
+            setUser(u);
+            return true;
+        } catch (err: any) {
             console.error(err);
+            setError(err.message || 'Error durante registro');
             return false;
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Cerrar sesión
-    const logout = () => {
-        authApi.logout();
+    const logout = async (): Promise<void> => {
+        await authApi.logout();
         setUser(null);
     };
 
-    // Recuperar contraseña
-    const forgotPassword = async (data: ForgotPasswordData): Promise<{ success: boolean; message: string }> => {
+    const forgotPassword = async (
+        data: ForgotPasswordData
+    ): Promise<{ success: boolean; message: string }> => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const response = await authApi.forgotPassword(data);
-
-            if (response.error) {
-                setError(response.error.message);
-                return { success: false, message: response.error.message };
-            }
-
-            return {
-                success: true,
-                message: response.data?.message || 'Instrucciones enviadas a tu correo'
-            };
-        } catch (err) {
-            const errorMsg = 'Error al procesar la solicitud';
-            setError(errorMsg);
+            const { message } = await authApi.forgotPassword(data);
+            return { success: true, message };
+        } catch (err: any) {
             console.error(err);
-            return { success: false, message: errorMsg };
+            const msg = err.message || 'Error al solicitar recuperación';
+            setError(msg);
+            return { success: false, message: msg };
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Restablecer contraseña
-    const resetPassword = async (data: ResetPasswordData): Promise<{ success: boolean; message: string }> => {
+    const resetPassword = async (
+        data: ResetPasswordData
+    ): Promise<{ success: boolean; message: string }> => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const response = await authApi.resetPassword(data);
-
-            if (response.error) {
-                setError(response.error.message);
-                return { success: false, message: response.error.message };
-            }
-
-            return {
-                success: true,
-                message: response.data?.message || 'Contraseña actualizada correctamente'
-            };
-        } catch (err) {
-            const errorMsg = 'Error al restablecer la contraseña';
-            setError(errorMsg);
+            const { message } = await authApi.resetPassword(data);
+            return { success: true, message };
+        } catch (err: any) {
             console.error(err);
-            return { success: false, message: errorMsg };
+            const msg = err.message || 'Error al restablecer contraseña';
+            setError(msg);
+            return { success: false, message: msg };
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Limpiar errores
-    const clearError = () => {
-        setError(null);
-    };
+    const clearError = () => setError(null);
 
-    // Valor del contexto
-    const value = {
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        forgotPassword,
-        resetPassword,
-        error,
-        clearError
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                isLoading,
+                isAuthenticated: !!user,
+                login,
+                register,
+                logout,
+                forgotPassword,
+                resetPassword,
+                error,
+                clearError,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
-// Hook personalizado para usar el contexto
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
-
-    if (context === undefined) {
-        throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    if (!context) {
+        throw new Error('useAuth debe usarse dentro de AuthProvider');
     }
-
     return context;
 };
 

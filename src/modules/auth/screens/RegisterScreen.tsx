@@ -46,10 +46,10 @@ export const RegisterScreen: React.FC = () => {
     } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
-            nombre_completo: '',
-            correo: '',
-            contrasena: '',
-            confirmar_contrasena: ''
+            nombre_completo: 'Kenny Pinchao',
+            correo: 'kennyp41234@gmail.com',
+            contrasena: 'Agente50@',
+            confirmar_contrasena: 'Agente50@'
         }
     });
 

@@ -1,8 +1,8 @@
 // src/shared/api/client.ts
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 import storage from '../storage';
 
-export const API_BASE_URL = 'http://192.168.100.39:3000/api/v1';
+export const API_BASE_URL = 'http://192.168.0.101:3000/api/v1';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -15,75 +15,95 @@ const api = axios.create({
 // Interceptor para añadir el token automáticamente
 api.interceptors.request.use(
     async (config) => {
-        const token = await storage.get('auth_token'); // 👈 usando el wrapper
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        const token = await storage.get('auth_token');
+        if (token && config.headers) {
+            config.headers['Authorization'] = `Bearer ${token}`;
         }
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// Tipado genérico
-export interface ApiResponse<T = any> {
-    data?: T;
-    error?: {
-        message: string;
-        code?: string;
-        details?: any;
-    };
+// Modelo de error que lanza el cliente
+export interface ApiError {
+    message: string;
+    code?: string;
+    details?: any;
     status: number;
 }
 
-// Métodos API
+async function handleError(error: AxiosError): Promise<never> {
+    const response = error.response;
+    const apiError: ApiError = {
+        message: (response?.data as any)?.message || 'Error desconocido',
+        code: (response?.data as any)?.code,
+        details: (response?.data as any)?.details,
+        status: response?.status || 0,
+    };
+    return Promise.reject(apiError);
+}
+
+// Cliente simplificado: cada método devuelve T directamente (por ejemplo {user, token})
 const apiClient = {
-    get: async <T>(url: string, config?: any): Promise<ApiResponse<T>> => {
+    get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
         try {
-            const res = await api.get(url, config);
-            return { data: res.data, status: res.status };
+            const res = await api.get<T>(url, config);
+            return res.data;
         } catch (err: any) {
-            return handleError<T>(err);
+            return handleError(err);
         }
     },
 
-    post: async <T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> => {
+    post: async <T = any>(
+        url: string,
+        data?: any,
+        config?: AxiosRequestConfig
+    ): Promise<T> => {
         try {
-            const res = await api.post(url, data, config);
-            return { data: res.data, status: res.status };
+            const res = await api.post<T>(url, data, config);
+            return res.data;
         } catch (err: any) {
-            return handleError<T>(err);
+            return handleError(err);
         }
     },
 
-    put: async <T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> => {
+    patch: async <T = any>(
+        url: string,
+        data?: any,
+        config?: AxiosRequestConfig
+    ): Promise<T> => {
         try {
-            const res = await api.put(url, data, config);
-            return { data: res.data, status: res.status };
+            const res = await api.patch<T>(url, data, config);
+            return res.data;
         } catch (err: any) {
-            return handleError<T>(err);
+            return handleError(err);
         }
     },
 
-    delete: async <T>(url: string, config?: any): Promise<ApiResponse<T>> => {
+    put: async <T = any>(
+        url: string,
+        data?: any,
+        config?: AxiosRequestConfig
+    ): Promise<T> => {
         try {
-            const res = await api.delete(url, config);
-            return { data: res.data, status: res.status };
+            const res = await api.put<T>(url, data, config);
+            return res.data;
         } catch (err: any) {
-            return handleError<T>(err);
+            return handleError(err);
+        }
+    },
+
+    delete: async <T = any>(
+        url: string,
+        config?: AxiosRequestConfig
+    ): Promise<T> => {
+        try {
+            const res = await api.delete<T>(url, config);
+            return res.data;
+        } catch (err: any) {
+            return handleError(err);
         }
     },
 };
-
-function handleError<T>(err: any): ApiResponse<T> {
-    const response = err.response;
-    return {
-        error: {
-            message: response?.data?.message || 'Error desconocido',
-            code: response?.data?.code,
-            details: response?.data?.details,
-        },
-        status: response?.status || 0,
-    };
-}
 
 export default apiClient;

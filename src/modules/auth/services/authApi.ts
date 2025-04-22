@@ -1,6 +1,6 @@
 // src/modules/Auth/services/authApi.ts
-import apiClient from "@/src/shared/api/client";
-import storage from "@/src/shared/storage";
+import apiClient from '@/src/shared/api/client';
+import storage from '@/src/shared/storage';
 
 // Tipos para la autenticación
 export interface User {
@@ -39,45 +39,37 @@ export interface ResetPasswordData {
 
 class AuthApi {
     // Registro de usuario
-    async register(userData: RegisterData) {
-        const response = await apiClient.post<AuthResponse>('/auth/register', userData, false);
-
-        if (response.data) {
-            await this.saveAuthData(response.data);
-        }
-
-        return response;
+    async register(userData: RegisterData): Promise<AuthResponse> {
+        const { user, token } = await apiClient.post<AuthResponse>('/auth/register', userData);
+        await this.saveAuthData({ user, token });
+        return { user, token };
     }
 
     // Inicio de sesión
-    async login(credentials: LoginCredentials) {
-        const response = await apiClient.post<AuthResponse>('/auth/login', credentials, false);
-
-        if (response.data) {
-            await this.saveAuthData(response.data);
-        }
-
-        return response;
+    async login(credentials: LoginCredentials): Promise<AuthResponse> {
+        const { user, token } = await apiClient.post<AuthResponse>('/auth/login', credentials);
+        await this.saveAuthData({ user, token });
+        return { user, token };
     }
 
     // Recuperación de contraseña
-    async forgotPassword(data: ForgotPasswordData) {
-        return apiClient.post<{ message: string }>('/auth/forgot-password', data, false);
+    async forgotPassword(data: ForgotPasswordData): Promise<{ message: string }> {
+        return apiClient.post<{ message: string }>('/auth/forgot-password', data);
     }
 
     // Restablecimiento de contraseña
-    async resetPassword(data: ResetPasswordData) {
-        return apiClient.post<{ message: string }>('/auth/reset-password', data, false);
+    async resetPassword(data: ResetPasswordData): Promise<{ message: string }> {
+        return apiClient.post<{ message: string }>('/auth/reset-password', data);
     }
 
     // Cerrar sesión
-    async logout() {
+    async logout(): Promise<void> {
         await storage.delete('auth_token');
         await storage.delete('user_data');
     }
 
     // Guardar datos de autenticación
-    private async saveAuthData(authData: AuthResponse) {
+    private async saveAuthData(authData: AuthResponse): Promise<void> {
         await storage.set('auth_token', authData.token);
         await storage.set('user_data', JSON.stringify(authData.user));
     }
@@ -85,16 +77,13 @@ class AuthApi {
     // Verificar si hay una sesión activa
     async isAuthenticated(): Promise<boolean> {
         const token = await storage.get('auth_token');
-        return !!token;
+        return Boolean(token);
     }
 
     // Obtener datos del usuario actual
     async getCurrentUser(): Promise<User | null> {
         const userData = await storage.get('user_data');
-        if (userData) {
-            return JSON.parse(userData);
-        }
-        return null;
+        return userData ? (JSON.parse(userData) as User) : null;
     }
 }
 
