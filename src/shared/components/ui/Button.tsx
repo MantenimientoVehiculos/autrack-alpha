@@ -1,12 +1,19 @@
 // src/shared/components/ui/Button.tsx
 import React from 'react';
-import { Button as TamaguiButton, Text, styled, ButtonProps } from 'tamagui';
+import { Button as PaperButton } from 'react-native-paper';
+import { StyleSheet } from 'react-native';
 
-// Extender las props del botón para nuestras necesidades
-export interface CustomButtonProps extends Omit<ButtonProps, 'size' | 'variant'> {
+// Extendemos las props del botón para nuestras necesidades
+export interface CustomButtonProps {
     buttonVariant?: 'primary' | 'secondary' | 'outline' | 'ghost';
     buttonSize?: 'small' | 'medium' | 'large';
     isLoading?: boolean;
+    onPress?: () => void;
+    disabled?: boolean;
+    children: React.ReactNode;
+    icon?: string;
+    contentStyle?: any;
+    style?: any;
 }
 
 // Componente Button personalizado
@@ -15,46 +22,37 @@ export const Button: React.FC<CustomButtonProps> = ({
     buttonSize = 'medium',
     isLoading = false,
     children,
+    disabled,
+    icon,
+    onPress,
+    contentStyle,
+    style,
     ...props
 }) => {
     // Configuración de estilos basados en variante
-    const getButtonStyles = () => {
+    const getButtonMode = () => {
         switch (buttonVariant) {
             case 'primary':
-                return {
-                    backgroundColor: '$primary',
-                    color: 'white',
-                    borderWidth: 0,
-                    hoverStyle: { backgroundColor: '$primaryHover' },
-                    pressStyle: { backgroundColor: '$primaryPress' },
-                };
             case 'secondary':
-                return {
-                    backgroundColor: '$secondary',
-                    color: 'white',
-                    borderWidth: 0,
-                    hoverStyle: { backgroundColor: '$secondaryHover' },
-                    pressStyle: { backgroundColor: '$secondaryPress' },
-                };
+                return 'contained';
             case 'outline':
-                return {
-                    backgroundColor: 'transparent',
-                    color: '$primary',
-                    borderWidth: 1,
-                    borderColor: '$primary',
-                    hoverStyle: { backgroundColor: '$backgroundHover' },
-                    pressStyle: { backgroundColor: '$backgroundPress' },
-                };
+                return 'outlined';
             case 'ghost':
-                return {
-                    backgroundColor: 'transparent',
-                    color: '$primary',
-                    borderWidth: 0,
-                    hoverStyle: { backgroundColor: '$backgroundHover' },
-                    pressStyle: { backgroundColor: '$backgroundPress' },
-                };
+                return 'text';
             default:
-                return {};
+                return 'contained';
+        }
+    };
+
+    // Configuración de colores basados en variante
+    const getButtonColor = () => {
+        switch (buttonVariant) {
+            case 'primary':
+                return undefined; // Usará el color primary del tema
+            case 'secondary':
+                return 'secondary'; // Usará el color secondary del tema
+            default:
+                return undefined;
         }
     };
 
@@ -62,42 +60,46 @@ export const Button: React.FC<CustomButtonProps> = ({
     const getSizeStyles = () => {
         switch (buttonSize) {
             case 'small':
-                return {
-                    paddingHorizontal: '$2',
-                    paddingVertical: '$1',
-                    fontSize: 14,
-                };
+                return styles.small;
             case 'medium':
-                return {
-                    paddingHorizontal: '$3',
-                    paddingVertical: '$2',
-                    fontSize: 16,
-                };
+                return styles.medium;
             case 'large':
-                return {
-                    paddingHorizontal: '$4',
-                    paddingVertical: '$3',
-                    fontSize: 18,
-                };
+                return styles.large;
             default:
-                return {};
+                return styles.medium;
         }
     };
 
-    const buttonStyles = getButtonStyles();
-    const sizeStyles = getSizeStyles();
-
     return (
-        <TamaguiButton
-            {...buttonStyles}
-            {...sizeStyles}
+        <PaperButton
+            mode={getButtonMode()}
+            buttonColor={getButtonMode() === 'contained' ? getButtonColor() : undefined}
+            textColor={getButtonMode() !== 'contained' ? getButtonColor() : undefined}
+            loading={isLoading}
+            disabled={isLoading || disabled}
+            icon={icon}
+            onPress={onPress}
+            style={[getSizeStyles(), style]}
+            contentStyle={[
+                buttonSize === 'large' ? { height: 52 } : {},
+                buttonSize === 'small' ? { height: 32 } : {},
+                contentStyle
+            ]}
             {...props}
-            opacity={isLoading || props.disabled ? 0.7 : 1}
         >
-            {isLoading ? 'Cargando...' : children}
-        </TamaguiButton>
+            {children}
+        </PaperButton>
     );
 };
 
-
-
+const styles = StyleSheet.create({
+    small: {
+        borderRadius: 4,
+    },
+    medium: {
+        borderRadius: 8,
+    },
+    large: {
+        borderRadius: 8,
+    },
+});

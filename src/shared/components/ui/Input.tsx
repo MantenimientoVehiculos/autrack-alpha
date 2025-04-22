@@ -1,30 +1,53 @@
 // src/shared/components/ui/Input.tsx
-import { Input as TamaguiInput, styled, InputProps, XStack, YStack, Label, Text } from 'tamagui';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Text, useTheme } from 'react-native-paper';
+import type { TextInputProps } from 'react-native-paper';
 
-export interface CustomInputProps extends InputProps {
+export interface CustomInputProps extends TextInputProps {
     label?: string;
-    error?: string;
+    errorMessage?: string;
 }
 
 export const Input: React.FC<CustomInputProps> = ({
     label,
-    error,
+    errorMessage,
+    mode = 'outlined',
     ...props
 }) => {
+    const theme = useTheme();
+
     return (
-        <YStack space="$1" width="100%">
-            {label && <Label>{label}</Label>}
-            <TamaguiInput
-                borderColor={error ? 'red' : '$borderColor'}
-                focusStyle={{ borderColor: error ? 'red' : '$primary' }}
+        <View style={styles.container}>
+            <TextInput
+                label={label}
+                mode={mode}
+                error={!!errorMessage}
+                style={styles.input}
+                outlineColor={errorMessage ? theme.colors.error : theme.colors.outline}
+                activeOutlineColor={errorMessage ? theme.colors.error : theme.colors.primary}
                 {...props}
             />
-            {error && (
-                <Text color="red" fontSize="$1">
-                    {error}
+            {errorMessage && (
+                <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                    {errorMessage}
                 </Text>
             )}
-        </YStack>
+        </View>
     );
 };
 
+const styles = StyleSheet.create({
+    container: {
+        width: '100%',
+        marginBottom: 4,
+    },
+    input: {
+        width: '100%',
+    },
+    errorText: {
+        fontSize: 12,
+        marginTop: 4,
+        marginLeft: 12,
+    },
+});

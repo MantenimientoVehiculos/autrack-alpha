@@ -1,57 +1,52 @@
-import { createTheme } from 'tamagui';
+// src/shared/theme/theme.ts
+import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 
-// Tema claro basado en tus colores
-export const lightTheme = createTheme({
-    background: '#FFFFFF',
-    backgroundHover: '#F9F9F9',
-    backgroundPress: '#EDEDED',
-    backgroundFocus: '#F9F9F9',
-    color: '#313131',
-    colorHover: '#2A2A2A',
-    colorPress: '#242424',
-    colorFocus: '#313131',
+// Define el tema claro personalizado basado en los colores existentes
+export const lightTheme = {
+    ...MD3LightTheme,
+    colors: {
+        ...MD3LightTheme.colors,
+        primary: '#9D7E68',
+        primaryContainer: '#B27046',
+        onPrimary: '#FFFFFF',
+        secondary: '#955D3B',
+        secondaryContainer: '#774A2F',
+        onSecondary: '#FFFFFF',
+        surface: '#F4F4F4',
+        background: '#FFFFFF',
+        error: '#B00020',
+        text: '#313131',
+        onBackground: '#313131',
+        onSurface: '#313131',
+    },
+    roundness: 8,
+};
 
-    // Colores de acento
-    primary: '#9D7E68',
-    primaryHover: '#B27046',
-    primaryPress: '#9E633E',
+// Define el tema oscuro personalizado
+export const darkTheme = {
+    ...MD3DarkTheme,
+    colors: {
+        ...MD3DarkTheme.colors,
+        primary: '#B27046',
+        primaryContainer: '#9E633E',
+        onPrimary: '#FFFFFF',
+        secondary: '#774A2F',
+        secondaryContainer: '#593823',
+        onSecondary: '#FFFFFF',
+        surface: '#313131',
+        background: '#111111',
+        error: '#CF6679',
+        text: '#F9F9F9',
+        onBackground: '#F9F9F9',
+        onSurface: '#F9F9F9',
+    },
+    roundness: 8,
+};
 
-    secondary: '#955D3B',
-    secondaryHover: '#774A2F',
-    secondaryPress: '#593823',
-
-    surface: '#F4F4F4',
-    surfaceHover: '#E6E6E6',
-    surfacePress: '#D8D8D8',
-});
-
-// Tema oscuro (opcional, lo dejamos preparado)
-export const darkTheme = createTheme({
-    background: '#111111',
-    backgroundHover: '#0C0C0C',
-    backgroundPress: '#050505',
-    backgroundFocus: '#111111',
-    color: '#F9F9F9',
-    colorHover: '#EDEDED',
-    colorPress: '#E3E3E3',
-    colorFocus: '#F9F9F9',
-
-    // Colores de acento
-    primary: '#B27046',
-    primaryHover: '#9E633E',
-    primaryPress: '#955D3B',
-
-    secondary: '#774A2F',
-    secondaryHover: '#593823',
-    secondaryPress: '#593823',
-
-    surface: '#313131',
-    surfaceHover: '#2A2A2A',
-    surfacePress: '#242424',
-});
-
-// Exportar temas
+// Exporta ambos temas y los tipos para TypeScript
 export const themes = {
     light: lightTheme,
     dark: darkTheme,
 };
+
+export type AppTheme = typeof lightTheme;

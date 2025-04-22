@@ -1,49 +1,74 @@
 // src/shared/components/ui/Card.tsx
-import { Card as TamaguiCard, styled, CardProps } from 'tamagui';
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { Card as PaperCard, useTheme } from 'react-native-paper';
+import type { CardProps } from 'react-native-paper';
 
-export interface CustomCardProps extends CardProps {
+export interface CustomCardProps extends Omit<CardProps, 'mode' | 'children'> {
     variant?: 'elevated' | 'outlined' | 'filled';
+    children: React.ReactNode;
 }
 
 export const Card: React.FC<CustomCardProps> = ({
     variant = 'elevated',
     children,
+    style,
     ...props
 }) => {
-    // Estilos basados en la variante
+    const theme = useTheme();
+
+    // Mapeo de variantes a mode de Paper
+    const getCardMode = (): "elevated" | "outlined" | "contained" => {
+        switch (variant) {
+            case 'elevated':
+                return 'elevated';
+            case 'outlined':
+                return 'outlined';
+            case 'filled':
+                return 'contained';
+            default:
+                return 'elevated';
+        }
+    };
+
+    // Estilos adicionales basados en la variante
     const getCardStyles = () => {
         switch (variant) {
             case 'elevated':
-                return {
-                    backgroundColor: '$background',
-                    shadowColor: '$shadowColor',
-                    shadowOpacity: 0.1,
-                    shadowRadius: 10,
-                    elevation: 3,
-                    borderWidth: 0,
-                };
+                return styles.elevated;
             case 'outlined':
-                return {
-                    backgroundColor: '$background',
-                    borderWidth: 1,
-                    borderColor: '$borderColor',
-                };
+                return styles.outlined;
             case 'filled':
-                return {
-                    backgroundColor: '$surface',
-                    borderWidth: 0,
-                };
+                return [styles.filled, { backgroundColor: theme.colors.surfaceVariant }];
             default:
                 return {};
         }
     };
 
-    const cardStyles = getCardStyles();
+    // Remove elevation prop if mode is 'contained'
+    const cardProps = variant === 'filled' ?
+        (({ elevation, ...rest }) => rest)(props) :
+        props;
 
     return (
-        <TamaguiCard padding="$3" borderRadius="$2" {...cardStyles} {...props}>
+        <PaperCard
+            mode={getCardMode()}
+            style={[getCardStyles(), style]}
+            {...cardProps}
+        >
             {children}
-        </TamaguiCard>
+        </PaperCard>
     );
 };
 
+const styles = StyleSheet.create({
+    elevated: {
+        margin: 8,
+    },
+    outlined: {
+        margin: 8,
+    },
+    filled: {
+        margin: 8,
+    },
+});
