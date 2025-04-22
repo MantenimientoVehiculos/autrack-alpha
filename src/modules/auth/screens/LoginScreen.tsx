@@ -1,8 +1,8 @@
-// src/modules/Auth/screens/LoginScreen.tsx
+// src/modules/auth/screens/LoginScreen.tsx
 import React from 'react';
-import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, TouchableWithoutFeedback, View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { XStack, YStack, H1, Text, Form } from 'tamagui';
+import { Text, Title, useTheme } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -27,6 +27,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginScreen: React.FC = () => {
     const router = useRouter();
     const { login, error, clearError, isLoading } = useAuth();
+    const theme = useTheme();
 
     // Configurar React Hook Form con el resolver de Zod
     const {
@@ -36,8 +37,8 @@ export const LoginScreen: React.FC = () => {
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            correo: '',
-            contrasena: ''
+            correo: 'kennyp41234@gmail.com',
+            contrasena: 'Agente50@'
         }
     });
 
@@ -71,91 +72,146 @@ export const LoginScreen: React.FC = () => {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <YStack
-                flex={1}
-                padding="$4"
-                backgroundColor="$background"
-                justifyContent="center"
-                space="$4"
+            <ScrollView
+                style={[styles.container, { backgroundColor: theme.colors.background }]}
+                contentContainerStyle={styles.contentContainer}
             >
-                <YStack space="$2" marginBottom="$4">
-                    <H1>Iniciar sesión</H1>
-                    <Text color="$color">Ingresa tus credenciales para continuar</Text>
-                </YStack>
-
-                <Form onSubmit={handleSubmit(onSubmit)}>
-                    <YStack space="$4">
-                        <Controller
-                            control={control}
-                            name="correo"
-                            render={({ field: { onChange, onBlur, value } }) => (
-                                <Input
-                                    label="Correo electrónico"
-                                    placeholder="correo@ejemplo.com"
-                                    value={value}
-                                    onChangeText={onChange}
-                                    onBlur={onBlur}
-                                    error={errors.correo?.message}
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                    autoComplete="email"
-                                />
-                            )}
-                        />
-
-                        <Controller
-                            control={control}
-                            name="contrasena"
-                            render={({ field: { onChange, onBlur, value } }) => (
-                                <Input
-                                    label="Contraseña"
-                                    placeholder="Contraseña"
-                                    value={value}
-                                    onChangeText={onChange}
-                                    onBlur={onBlur}
-                                    error={errors.contrasena?.message}
-                                    secureTextEntry
-                                    autoCapitalize="none"
-                                    autoComplete="password"
-                                />
-                            )}
-                        />
-
-                        {error && (
-                            <Text color="red" textAlign="center">
-                                {error}
-                            </Text>
-                        )}
-
-                        <Button
-                            buttonVariant="primary"
-                            buttonSize="large"
-                            onPress={handleSubmit(onSubmit)}
-                            isLoading={isLoading}
-                        >
-                            Iniciar sesión
-                        </Button>
-                    </YStack>
-                </Form>
-
-                <XStack justifyContent="center" marginTop="$2">
-                    <Text>¿No tienes una cuenta? </Text>
-                    <Text color="$primary" onPress={navigateToRegister} fontWeight="bold">
-                        Regístrate
+                <View style={styles.headerContainer}>
+                    <Title style={[styles.title, { color: theme.colors.onBackground }]}>
+                        Iniciar sesión
+                    </Title>
+                    <Text style={{ color: theme.colors.onBackground }}>
+                        Ingresa tus credenciales para continuar
                     </Text>
-                </XStack>
+                </View>
 
-                <Text
-                    color="$primary"
-                    textAlign="center"
-                    onPress={navigateToForgotPassword}
-                    marginTop="$2"
-                >
-                    ¿Olvidaste tu contraseña?
-                </Text>
-            </YStack>
+                <View style={styles.formContainer}>
+                    <Controller
+                        control={control}
+                        name="correo"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Correo electrónico"
+                                placeholder="correo@ejemplo.com"
+                                value={value}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.correo?.message}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                autoComplete="email"
+                                style={styles.input}
+                            />
+                        )}
+                    />
+
+                    <Controller
+                        control={control}
+                        name="contrasena"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Contraseña"
+                                placeholder="Contraseña"
+                                value={value}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.contrasena?.message}
+                                secureTextEntry
+                                autoCapitalize="none"
+                                autoComplete="password"
+                                style={styles.input}
+                            />
+                        )}
+                    />
+
+                    {error && (
+                        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                            {error}
+                        </Text>
+                    )}
+
+                    <Button
+                        buttonVariant="primary"
+                        buttonSize="large"
+                        onPress={handleSubmit(onSubmit)}
+                        isLoading={isLoading}
+                        style={styles.button}
+                    >
+                        Iniciar sesión
+                    </Button>
+                </View>
+
+                <View style={styles.footerContainer}>
+                    <View style={styles.registerContainer}>
+                        <Text style={{ color: theme.colors.onBackground }}>
+                            ¿No tienes una cuenta?{' '}
+                        </Text>
+                        <Text
+                            style={[styles.link, { color: theme.colors.primary }]}
+                            onPress={navigateToRegister}
+                        >
+                            Regístrate
+                        </Text>
+                    </View>
+
+                    <Text
+                        style={[styles.forgotPassword, { color: theme.colors.primary }]}
+                        onPress={navigateToForgotPassword}
+                    >
+                        ¿Olvidaste tu contraseña?
+                    </Text>
+                </View>
+            </ScrollView>
         </TouchableWithoutFeedback>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    contentContainer: {
+        flexGrow: 1,
+        padding: 24,
+        justifyContent: 'center',
+    },
+    headerContainer: {
+        marginBottom: 32,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    formContainer: {
+        width: '100%',
+        gap: 5,
+    },
+    input: {
+        marginBottom: 12,
+    },
+    errorText: {
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    button: {
+        marginTop: 8,
+    },
+    footerContainer: {
+        marginTop: 24,
+        alignItems: 'center',
+    },
+    registerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    link: {
+        fontWeight: 'bold',
+    },
+    forgotPassword: {
+        textAlign: 'center',
+    },
+});
 
 export default LoginScreen;

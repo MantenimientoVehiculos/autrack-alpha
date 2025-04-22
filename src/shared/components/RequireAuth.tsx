@@ -1,7 +1,8 @@
 // src/shared/components/RequireAuth.tsx
 import React, { useEffect } from 'react';
 import { Redirect } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useTheme } from 'react-native-paper';
 import { useAuth } from '@/src/modules/auth/context/AuthContext';
 
 interface RequireAuthProps {
@@ -10,11 +11,12 @@ interface RequireAuthProps {
 
 export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
     const { isAuthenticated, isLoading } = useAuth();
+    const theme = useTheme();
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#9D7E68" />
+            <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
@@ -25,3 +27,13 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
 
     return <>{children}</>;
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});
+
+export default RequireAuth;

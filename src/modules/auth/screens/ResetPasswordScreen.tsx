@@ -1,8 +1,8 @@
-// src/modules/Auth/screens/ResetPasswordScreen.tsx
+// src/modules/auth/screens/ResetPasswordScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, TouchableWithoutFeedback, View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { YStack, H1, Text, Form, Paragraph } from 'tamagui';
+import { Text, Title, Paragraph, useTheme } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -33,6 +33,7 @@ export const ResetPasswordScreen: React.FC = () => {
     const { resetPassword, error, clearError, isLoading } = useAuth();
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const theme = useTheme();
 
     useEffect(() => {
         if (params.token) {
@@ -84,106 +85,152 @@ export const ResetPasswordScreen: React.FC = () => {
 
     if (!token) {
         return (
-            <YStack
-                flex={1}
-                padding="$4"
-                backgroundColor="$background"
-                justifyContent="center"
-                alignItems="center"
-            >
-                <Text>Redireccionando...</Text>
-            </YStack>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={{ marginTop: 16, color: theme.colors.onBackground }}>
+                    Redireccionando...
+                </Text>
+            </View>
         );
     }
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <YStack
-                flex={1}
-                padding="$4"
-                backgroundColor="$background"
-                justifyContent="center"
-                space="$4"
+            <ScrollView
+                style={[styles.container, { backgroundColor: theme.colors.background }]}
+                contentContainerStyle={styles.contentContainer}
             >
-                <YStack space="$2" marginBottom="$4">
-                    <H1>Restablecer contraseña</H1>
-                    <Text color="$color">
+                <View style={styles.headerContainer}>
+                    <Title style={[styles.title, { color: theme.colors.onBackground }]}>
+                        Restablecer contraseña
+                    </Title>
+                    <Text style={{ color: theme.colors.onBackground }}>
                         Crea una nueva contraseña para tu cuenta
                     </Text>
-                </YStack>
+                </View>
 
                 {successMessage ? (
-                    <YStack space="$4" alignItems="center">
-                        <Paragraph textAlign="center" color="$primary">
+                    <View style={styles.successContainer}>
+                        <Paragraph style={[styles.successMessage, { color: theme.colors.primary }]}>
                             {successMessage}
                         </Paragraph>
                         <Button
                             buttonVariant="primary"
                             buttonSize="large"
                             onPress={navigateToLogin}
+                            style={styles.button}
                         >
                             Ir al inicio de sesión
                         </Button>
-                    </YStack>
+                    </View>
                 ) : (
-                    <Form onSubmit={handleSubmit(onSubmit)}>
-                        <YStack space="$4">
-                            <Controller
-                                control={control}
-                                name="nueva_contrasena"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Nueva contraseña"
-                                        placeholder="Nueva contraseña"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.nueva_contrasena?.message}
-                                        secureTextEntry
-                                        autoCapitalize="none"
-                                        autoComplete="password-new"
-                                    />
-                                )}
-                            />
-
-                            <Controller
-                                control={control}
-                                name="confirmar_contrasena"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Confirmar contraseña"
-                                        placeholder="Confirma tu nueva contraseña"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.confirmar_contrasena?.message}
-                                        secureTextEntry
-                                        autoCapitalize="none"
-                                        autoComplete="password-new"
-                                    />
-                                )}
-                            />
-
-                            {error && (
-                                <Text color="red" textAlign="center">
-                                    {error}
-                                </Text>
+                    <View style={styles.formContainer}>
+                        <Controller
+                            control={control}
+                            name="nueva_contrasena"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <Input
+                                    label="Nueva contraseña"
+                                    placeholder="Nueva contraseña"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    error={errors.nueva_contrasena?.message}
+                                    secureTextEntry
+                                    autoCapitalize="none"
+                                    autoComplete="password-new"
+                                    style={styles.input}
+                                />
                             )}
+                        />
 
-                            <Button
-                                buttonVariant="primary"
-                                buttonSize="large"
-                                onPress={handleSubmit(onSubmit)}
-                                isLoading={isLoading}
-                            >
-                                Cambiar contraseña
-                            </Button>
-                        </YStack>
-                    </Form>
+                        <Controller
+                            control={control}
+                            name="confirmar_contrasena"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <Input
+                                    label="Confirmar contraseña"
+                                    placeholder="Confirma tu nueva contraseña"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    error={errors.confirmar_contrasena?.message}
+                                    secureTextEntry
+                                    autoCapitalize="none"
+                                    autoComplete="password-new"
+                                    style={styles.input}
+                                />
+                            )}
+                        />
+
+                        {error && (
+                            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                                {error}
+                            </Text>
+                        )}
+
+                        <Button
+                            buttonVariant="primary"
+                            buttonSize="large"
+                            onPress={handleSubmit(onSubmit)}
+                            isLoading={isLoading}
+                            style={styles.button}
+                        >
+                            Cambiar contraseña
+                        </Button>
+                    </View>
                 )}
-            </YStack>
+            </ScrollView>
         </TouchableWithoutFeedback>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    contentContainer: {
+        flexGrow: 1,
+        padding: 24,
+        justifyContent: 'center',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerContainer: {
+        marginBottom: 32,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    formContainer: {
+        width: '100%',
+        gap: 16,
+    },
+    successContainer: {
+        width: '100%',
+        alignItems: 'center',
+        gap: 16,
+    },
+    input: {
+        marginBottom: 12,
+    },
+    errorText: {
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    button: {
+        marginTop: 8,
+    },
+    successMessage: {
+        textAlign: 'center',
+        fontSize: 16,
+        marginBottom: 16,
+    },
+});
 
 export default ResetPasswordScreen;

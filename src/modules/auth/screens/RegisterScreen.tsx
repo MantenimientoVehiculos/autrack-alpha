@@ -1,8 +1,8 @@
-// src/modules/Auth/screens/RegisterScreen.tsx
+// src/modules/auth/screens/RegisterScreen.tsx
 import React from 'react';
-import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, TouchableWithoutFeedback, View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { XStack, YStack, H1, Text, Form, ScrollView } from 'tamagui';
+import { Text, Title, useTheme } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -36,6 +36,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export const RegisterScreen: React.FC = () => {
     const router = useRouter();
     const { register, error, clearError, isLoading } = useAuth();
+    const theme = useTheme();
 
     // Configurar React Hook Form con el resolver de Zod
     const {
@@ -79,121 +80,172 @@ export const RegisterScreen: React.FC = () => {
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView
-                flex={1}
-                backgroundColor="$background"
-                contentContainerStyle={{ flexGrow: 1 }}
+                style={[styles.container, { backgroundColor: theme.colors.background }]}
+                contentContainerStyle={styles.contentContainer}
             >
-                <YStack
-                    flex={1}
-                    padding="$4"
-                    justifyContent="center"
-                    space="$4"
-                >
-                    <YStack space="$2" marginBottom="$4">
-                        <H1>Crear cuenta</H1>
-                        <Text color="$color">Completa tus datos para registrarte</Text>
-                    </YStack>
+                <View style={styles.headerContainer}>
+                    <Title style={[styles.title, { color: theme.colors.onBackground }]}>
+                        Crear cuenta
+                    </Title>
+                    <Text style={{ color: theme.colors.onBackground }}>
+                        Completa tus datos para registrarte
+                    </Text>
+                </View>
 
-                    <Form onSubmit={handleSubmit(onSubmit)}>
-                        <YStack space="$4">
-                            <Controller
-                                control={control}
-                                name="nombre_completo"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Nombre completo"
-                                        placeholder="Nombre y apellido"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.nombre_completo?.message}
-                                        autoCapitalize="words"
-                                        autoComplete="name"
-                                    />
-                                )}
+                <View style={styles.formContainer}>
+                    <Controller
+                        control={control}
+                        name="nombre_completo"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Nombre completo"
+                                placeholder="Nombre y apellido"
+                                value={value}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.nombre_completo?.message}
+                                autoCapitalize="words"
+                                autoComplete="name"
+                                style={styles.input}
                             />
+                        )}
+                    />
 
-                            <Controller
-                                control={control}
-                                name="correo"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Correo electrónico"
-                                        placeholder="correo@ejemplo.com"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.correo?.message}
-                                        autoCapitalize="none"
-                                        keyboardType="email-address"
-                                        autoComplete="email"
-                                    />
-                                )}
+                    <Controller
+                        control={control}
+                        name="correo"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Correo electrónico"
+                                placeholder="correo@ejemplo.com"
+                                value={value}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.correo?.message}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                autoComplete="email"
+                                style={styles.input}
                             />
+                        )}
+                    />
 
-                            <Controller
-                                control={control}
-                                name="contrasena"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Contraseña"
-                                        placeholder="Contraseña"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.contrasena?.message}
-                                        secureTextEntry
-                                        autoCapitalize="none"
-                                        autoComplete="password-new"
-                                    />
-                                )}
+                    <Controller
+                        control={control}
+                        name="contrasena"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Contraseña"
+                                placeholder="Contraseña"
+                                value={value}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.contrasena?.message}
+                                secureTextEntry
+                                autoCapitalize="none"
+                                autoComplete="password-new"
+                                style={styles.input}
                             />
+                        )}
+                    />
 
-                            <Controller
-                                control={control}
-                                name="confirmar_contrasena"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Confirmar contraseña"
-                                        placeholder="Confirma tu contraseña"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.confirmar_contrasena?.message}
-                                        secureTextEntry
-                                        autoCapitalize="none"
-                                        autoComplete="password-new"
-                                    />
-                                )}
+                    <Controller
+                        control={control}
+                        name="confirmar_contrasena"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Confirmar contraseña"
+                                placeholder="Confirma tu contraseña"
+                                value={value}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.confirmar_contrasena?.message}
+                                secureTextEntry
+                                autoCapitalize="none"
+                                autoComplete="password-new"
+                                style={styles.input}
                             />
+                        )}
+                    />
 
-                            {error && (
-                                <Text color="red" textAlign="center">
-                                    {error}
-                                </Text>
-                            )}
+                    {error && (
+                        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                            {error}
+                        </Text>
+                    )}
 
-                            <Button
-                                buttonVariant="primary"
-                                buttonSize="large"
-                                onPress={handleSubmit(onSubmit)}
-                                isLoading={isLoading}
-                            >
-                                Registrarme
-                            </Button>
-                        </YStack>
-                    </Form>
+                    <Button
+                        buttonVariant="primary"
+                        buttonSize="large"
+                        onPress={handleSubmit(onSubmit)}
+                        isLoading={isLoading}
+                        style={styles.button}
+                    >
+                        Registrarme
+                    </Button>
+                </View>
 
-                    <XStack justifyContent="center" marginTop="$2">
-                        <Text>¿Ya tienes una cuenta? </Text>
-                        <Text color="$primary" onPress={navigateToLogin} fontWeight="bold">
+                <View style={styles.footerContainer}>
+                    <View style={styles.loginContainer}>
+                        <Text style={{ color: theme.colors.onBackground }}>
+                            ¿Ya tienes una cuenta?{' '}
+                        </Text>
+                        <Text
+                            style={[styles.link, { color: theme.colors.primary }]}
+                            onPress={navigateToLogin}
+                        >
                             Iniciar sesión
                         </Text>
-                    </XStack>
-                </YStack>
+                    </View>
+                </View>
             </ScrollView>
         </TouchableWithoutFeedback>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    contentContainer: {
+        flexGrow: 1,
+        padding: 24,
+        justifyContent: 'center',
+    },
+    headerContainer: {
+        marginBottom: 32,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    formContainer: {
+        width: '100%',
+        gap: 5,
+    },
+    input: {
+        marginBottom: 12,
+    },
+    errorText: {
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    button: {
+        marginTop: 8,
+    },
+    footerContainer: {
+        marginTop: 24,
+        alignItems: 'center',
+    },
+    loginContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    link: {
+        fontWeight: 'bold',
+    },
+});
 
 export default RegisterScreen;

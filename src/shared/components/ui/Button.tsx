@@ -2,17 +2,16 @@
 import React from 'react';
 import { Button as PaperButton } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
+import { useTheme } from 'react-native-paper';
 
-// Extendemos las props del botón para nuestras necesidades
+// Extender las props del botón para nuestras necesidades
 export interface CustomButtonProps {
     buttonVariant?: 'primary' | 'secondary' | 'outline' | 'ghost';
     buttonSize?: 'small' | 'medium' | 'large';
     isLoading?: boolean;
-    onPress?: () => void;
-    disabled?: boolean;
     children: React.ReactNode;
-    icon?: string;
-    contentStyle?: any;
+    disabled?: boolean;
+    onPress?: () => void;
     style?: any;
 }
 
@@ -23,14 +22,72 @@ export const Button: React.FC<CustomButtonProps> = ({
     isLoading = false,
     children,
     disabled,
-    icon,
     onPress,
-    contentStyle,
     style,
     ...props
 }) => {
+    const theme = useTheme();
+
     // Configuración de estilos basados en variante
-    const getButtonMode = () => {
+    const getButtonStyles = () => {
+        const styles: any = {};
+
+        switch (buttonVariant) {
+            case 'primary':
+                styles.backgroundColor = theme.colors.primary;
+                styles.borderWidth = 0;
+                break;
+            case 'secondary':
+                styles.backgroundColor = theme.colors.secondary;
+                styles.borderWidth = 0;
+                break;
+            case 'outline':
+                styles.backgroundColor = 'transparent';
+                styles.borderWidth = 1;
+                styles.borderColor = theme.colors.primary;
+                break;
+            case 'ghost':
+                styles.backgroundColor = 'transparent';
+                styles.borderWidth = 0;
+                break;
+            default:
+                break;
+        }
+
+        return styles;
+    };
+
+    // Configuración de tamaño
+    const getSizeStyles = () => {
+        switch (buttonSize) {
+            case 'small':
+                return {
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    fontSize: 14,
+                };
+            case 'medium':
+                return {
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    fontSize: 16,
+                };
+            case 'large':
+                return {
+                    paddingHorizontal: 24,
+                    paddingVertical: 12,
+                    fontSize: 18,
+                };
+            default:
+                return {};
+        }
+    };
+
+    const buttonStyles = getButtonStyles();
+    const sizeStyles = getSizeStyles();
+
+    // Determinar el modo basado en la variante
+    const getMode = () => {
         switch (buttonVariant) {
             case 'primary':
             case 'secondary':
@@ -44,47 +101,29 @@ export const Button: React.FC<CustomButtonProps> = ({
         }
     };
 
-    // Configuración de colores basados en variante
-    const getButtonColor = () => {
+    // Obtener el color del texto para el botón
+    const getTextColor = () => {
         switch (buttonVariant) {
             case 'primary':
-                return undefined; // Usará el color primary del tema
             case 'secondary':
-                return 'secondary'; // Usará el color secondary del tema
+                return 'white';
+            case 'outline':
+            case 'ghost':
+                return theme.colors.primary;
             default:
-                return undefined;
-        }
-    };
-
-    // Configuración de tamaño
-    const getSizeStyles = () => {
-        switch (buttonSize) {
-            case 'small':
-                return styles.small;
-            case 'medium':
-                return styles.medium;
-            case 'large':
-                return styles.large;
-            default:
-                return styles.medium;
+                return 'white';
         }
     };
 
     return (
         <PaperButton
-            mode={getButtonMode()}
-            buttonColor={getButtonMode() === 'contained' ? getButtonColor() : undefined}
-            textColor={getButtonMode() !== 'contained' ? getButtonColor() : undefined}
-            loading={isLoading}
-            disabled={isLoading || disabled}
-            icon={icon}
+            mode={getMode()}
+            style={[styles.button, buttonStyles, , style]}
+            labelStyle={sizeStyles}
             onPress={onPress}
-            style={[getSizeStyles(), style]}
-            contentStyle={[
-                buttonSize === 'large' ? { height: 52 } : {},
-                buttonSize === 'small' ? { height: 32 } : {},
-                contentStyle
-            ]}
+            loading={isLoading}
+            disabled={disabled || isLoading}
+            textColor={getTextColor()}
             {...props}
         >
             {children}
@@ -93,13 +132,7 @@ export const Button: React.FC<CustomButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-    small: {
-        borderRadius: 4,
-    },
-    medium: {
-        borderRadius: 8,
-    },
-    large: {
-        borderRadius: 8,
+    button: {
+        borderRadius: 12,
     },
 });

@@ -1,8 +1,8 @@
-// src/modules/Auth/screens/ForgotPasswordScreen.tsx
+// src/modules/auth/screens/ForgotPasswordScreen.tsx
 import React, { useState } from 'react';
-import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, TouchableWithoutFeedback, View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { YStack, H1, Text, Form, Paragraph } from 'tamagui';
+import { Text, Title, Paragraph, useTheme } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -26,6 +26,7 @@ export const ForgotPasswordScreen: React.FC = () => {
     const router = useRouter();
     const { forgotPassword, error, clearError, isLoading } = useAuth();
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const theme = useTheme();
 
     // Configurar React Hook Form con el resolver de Zod
     const {
@@ -64,83 +65,128 @@ export const ForgotPasswordScreen: React.FC = () => {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <YStack
-                flex={1}
-                padding="$4"
-                backgroundColor="$background"
-                justifyContent="center"
-                space="$4"
+            <ScrollView
+                style={[styles.container, { backgroundColor: theme.colors.background }]}
+                contentContainerStyle={styles.contentContainer}
             >
-                <YStack space="$2" marginBottom="$4">
-                    <H1>Recuperar contraseña</H1>
-                    <Text color="$color">
+                <View style={styles.headerContainer}>
+                    <Title style={[styles.title, { color: theme.colors.onBackground }]}>
+                        Recuperar contraseña
+                    </Title>
+                    <Text style={{ color: theme.colors.onBackground }}>
                         Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña
                     </Text>
-                </YStack>
+                </View>
 
                 {successMessage ? (
-                    <YStack space="$4" alignItems="center">
-                        <Paragraph textAlign="center" color="$primary">
+                    <View style={styles.successContainer}>
+                        <Paragraph style={[styles.successMessage, { color: theme.colors.primary }]}>
                             {successMessage}
                         </Paragraph>
                         <Button
                             buttonVariant="primary"
                             buttonSize="large"
                             onPress={navigateToLogin}
+                            style={styles.button}
                         >
                             Volver al inicio de sesión
                         </Button>
-                    </YStack>
+                    </View>
                 ) : (
-                    <Form onSubmit={handleSubmit(onSubmit)}>
-                        <YStack space="$4">
-                            <Controller
-                                control={control}
-                                name="correo"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <Input
-                                        label="Correo electrónico"
-                                        placeholder="correo@ejemplo.com"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.correo?.message}
-                                        autoCapitalize="none"
-                                        keyboardType="email-address"
-                                        autoComplete="email"
-                                    />
-                                )}
-                            />
-
-                            {error && (
-                                <Text color="red" textAlign="center">
-                                    {error}
-                                </Text>
+                    <View style={styles.formContainer}>
+                        <Controller
+                            control={control}
+                            name="correo"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <Input
+                                    label="Correo electrónico"
+                                    placeholder="correo@ejemplo.com"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    error={errors.correo?.message}
+                                    autoCapitalize="none"
+                                    keyboardType="email-address"
+                                    autoComplete="email"
+                                    style={styles.input}
+                                />
                             )}
+                        />
 
-                            <Button
-                                buttonVariant="primary"
-                                buttonSize="large"
-                                onPress={handleSubmit(onSubmit)}
-                                isLoading={isLoading}
-                            >
-                                Enviar instrucciones
-                            </Button>
-                        </YStack>
-                    </Form>
+                        {error && (
+                            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                                {error}
+                            </Text>
+                        )}
+
+                        <Button
+                            buttonVariant="primary"
+                            buttonSize="large"
+                            onPress={handleSubmit(onSubmit)}
+                            isLoading={isLoading}
+                            style={styles.button}
+                        >
+                            Enviar instrucciones
+                        </Button>
+                    </View>
                 )}
 
                 <Text
-                    color="$primary"
-                    textAlign="center"
+                    style={[styles.backToLogin, { color: theme.colors.primary }]}
                     onPress={navigateToLogin}
-                    marginTop="$2"
                 >
                     Volver al inicio de sesión
                 </Text>
-            </YStack>
+            </ScrollView>
         </TouchableWithoutFeedback>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    contentContainer: {
+        flexGrow: 1,
+        padding: 24,
+        justifyContent: 'center',
+    },
+    headerContainer: {
+        marginBottom: 32,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    formContainer: {
+        width: '100%',
+        gap: 16,
+    },
+    successContainer: {
+        width: '100%',
+        alignItems: 'center',
+        gap: 16,
+    },
+    input: {
+        marginBottom: 12,
+    },
+    errorText: {
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    button: {
+        marginTop: 8,
+    },
+    successMessage: {
+        textAlign: 'center',
+        fontSize: 16,
+        marginBottom: 16,
+    },
+    backToLogin: {
+        textAlign: 'center',
+        marginTop: 24,
+    },
+});
 
 export default ForgotPasswordScreen;

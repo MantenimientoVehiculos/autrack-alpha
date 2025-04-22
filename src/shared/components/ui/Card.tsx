@@ -1,74 +1,68 @@
 // src/shared/components/ui/Card.tsx
 import React from 'react';
-import { StyleSheet } from 'react-native';
 import { Card as PaperCard, useTheme } from 'react-native-paper';
-import type { CardProps } from 'react-native-paper';
+import { StyleSheet } from 'react-native';
 
-export interface CustomCardProps extends Omit<CardProps, 'mode' | 'children'> {
+export interface CustomCardProps {
     variant?: 'elevated' | 'outlined' | 'filled';
     children: React.ReactNode;
+    style?: any;
+    onPress?: () => void;
 }
 
 export const Card: React.FC<CustomCardProps> = ({
     variant = 'elevated',
     children,
     style,
+    onPress,
     ...props
 }) => {
     const theme = useTheme();
 
-    // Mapeo de variantes a mode de Paper
-    const getCardMode = (): "elevated" | "outlined" | "contained" => {
-        switch (variant) {
-            case 'elevated':
-                return 'elevated';
-            case 'outlined':
-                return 'outlined';
-            case 'filled':
-                return 'contained';
-            default:
-                return 'elevated';
-        }
-    };
-
-    // Estilos adicionales basados en la variante
+    // Estilos basados en la variante
     const getCardStyles = () => {
         switch (variant) {
             case 'elevated':
-                return styles.elevated;
+                return {
+                    backgroundColor: theme.colors.background,
+                    elevation: 3,
+                };
             case 'outlined':
-                return styles.outlined;
+                return {
+                    backgroundColor: theme.colors.background,
+                    borderWidth: 1,
+                    borderColor: theme.colors.outline,
+                    elevation: 0,
+                };
             case 'filled':
-                return [styles.filled, { backgroundColor: theme.colors.surfaceVariant }];
+                return {
+                    backgroundColor: theme.colors.surfaceVariant,
+                    elevation: 0,
+                };
             default:
                 return {};
         }
     };
 
-    // Remove elevation prop if mode is 'contained'
-    const cardProps = variant === 'filled' ?
-        (({ elevation, ...rest }) => rest)(props) :
-        props;
+    const cardStyles = getCardStyles();
 
     return (
         <PaperCard
-            mode={getCardMode()}
-            style={[getCardStyles(), style]}
-            {...cardProps}
+            style={[styles.card, cardStyles, style]}
+            onPress={onPress}
+            {...props}
         >
-            {children}
+            <PaperCard.Content>
+                {children}
+            </PaperCard.Content>
         </PaperCard>
     );
 };
 
 const styles = StyleSheet.create({
-    elevated: {
-        margin: 8,
-    },
-    outlined: {
-        margin: 8,
-    },
-    filled: {
-        margin: 8,
+    card: {
+        borderRadius: 8,
+        marginVertical: 8,
+        padding: 0,
     },
 });
