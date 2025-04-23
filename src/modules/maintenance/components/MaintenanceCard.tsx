@@ -9,9 +9,14 @@ import { MaintenanceRecord } from '../models/maintenance';
 interface MaintenanceCardProps {
     record: MaintenanceRecord;
     onDelete?: (id: number) => void;
+    onPress?: () => void;
 }
 
-export const MaintenanceCard: React.FC<MaintenanceCardProps> = ({ record, onDelete }) => {
+export const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
+    record,
+    onDelete,
+    onPress
+}) => {
     const { theme } = useAppTheme();
 
     const {
@@ -39,88 +44,91 @@ export const MaintenanceCard: React.FC<MaintenanceCardProps> = ({ record, onDele
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
+    const cardColor = theme === 'dark' ? '#222222' : '#FFFFFF';
+    const borderColor = theme === 'dark' ? '#333333' : '#EEEEEE';
 
     return (
-        <Card variant="elevated" style={styles.card}>
-            <View style={styles.cardContent}>
-                <View style={styles.mainInfo}>
-                    <Text style={[styles.maintenanceType, { color: textColor }]}>
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={onPress ? 0.7 : 1}
+            style={[
+                styles.container,
+                { backgroundColor: cardColor, borderColor: borderColor }
+            ]}
+        >
+            <View style={styles.mainContent}>
+                <View style={styles.header}>
+                    <Text style={[styles.typeText, { color: textColor }]}>
                         {tipo_mantenimiento?.nombre || 'Mantenimiento'}
                     </Text>
-
-                    <View style={styles.dateKmContainer}>
-                        <Text style={[styles.infoText, { color: secondaryTextColor }]}>
-                            {formatDate(fecha)}
-                        </Text>
-                        <Text style={[styles.infoText, { color: secondaryTextColor }]}>
-                            {kilometraje.toLocaleString()} km
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.costContainer}>
                     <Text style={[styles.costText, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
                         ${costo.toFixed(2)}
                     </Text>
+                </View>
 
-                    {onDelete && (
-                        <TouchableOpacity
-                            style={styles.deleteButton}
-                            onPress={handleDelete}
-                            accessibilityLabel="Eliminar mantenimiento"
-                        >
-                            <TrashIcon
-                                size={18}
-                                color="#CF6679"
-                            />
-                        </TouchableOpacity>
-                    )}
+                <View style={styles.details}>
+                    <Text style={[styles.dateText, { color: secondaryTextColor }]}>
+                        {formatDate(fecha)}
+                    </Text>
+                    <Text style={[styles.kmText, { color: secondaryTextColor }]}>
+                        {kilometraje.toLocaleString()}km
+                    </Text>
                 </View>
             </View>
-        </Card>
+
+            {onDelete && (
+                <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={handleDelete}
+                    accessibilityLabel="Eliminar mantenimiento"
+                >
+                    <TrashIcon size={18} color={theme === 'dark' ? '#CF6679' : '#CF6679'} />
+                </TouchableOpacity>
+            )}
+        </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
-    card: {
-        marginVertical: 6,
-        marginHorizontal: 16,
+    container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 8,
+        marginBottom: 10,
+        borderWidth: 1,
+        elevation: 1,
     },
-    cardContent: {
+    mainContent: {
+        flex: 1,
+    },
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        marginBottom: 6,
     },
-    mainInfo: {
-        flex: 1,
-    },
-    maintenanceType: {
+    typeText: {
         fontSize: 16,
         fontWeight: '600',
-        marginBottom: 4,
-    },
-    dateKmContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    infoText: {
-        fontSize: 14,
-        marginRight: 12,
-    },
-    costContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
     },
     costText: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginRight: 8,
+    },
+    details: {
+        flexDirection: 'row',
+    },
+    dateText: {
+        fontSize: 14,
+        marginRight: 12,
+    },
+    kmText: {
+        fontSize: 14,
     },
     deleteButton: {
-        padding: 4,
-    },
+        padding: 8,
+    }
 });
 
 export default MaintenanceCard;

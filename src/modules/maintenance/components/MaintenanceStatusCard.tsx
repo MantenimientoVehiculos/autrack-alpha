@@ -4,9 +4,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Card } from '@/src/shared/components/ui/Card';
 import { Button } from '@/src/shared/components/ui/Button';
-import { MaintenanceRecord } from '../models/maintenance';
-import { Vehicle } from '@/src/modules/vehicles/models/vehicle';
 import { CarIcon } from '@/src/shared/components/ui/Icons';
+import { Vehicle } from '@/src/modules/vehicles/models/vehicle';
 
 interface MaintenanceStatusCardProps {
     vehicle: Vehicle;
@@ -29,7 +28,6 @@ export const MaintenanceStatusCard: React.FC<MaintenanceStatusCardProps> = ({
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
-    const bgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
 
     // Formatear fecha
     const formatDate = (dateStr: string): string => {
@@ -46,48 +44,43 @@ export const MaintenanceStatusCard: React.FC<MaintenanceStatusCardProps> = ({
 
     return (
         <Card variant="elevated" style={styles.card}>
-            <View style={styles.headerContainer}>
-                <View style={styles.vehicleInfo}>
+            {/* Header del vehículo */}
+            <View style={styles.vehicleHeader}>
+                <View>
                     <Text style={[styles.vehicleName, { color: textColor }]}>
                         {vehicle.marca?.nombre} {vehicle.modelo?.nombre}
                     </Text>
-                    <Text style={[styles.vehicleDetails, { color: secondaryTextColor }]}>
-                        {vehicle.anio} - {vehicle.placa}
+                    <Text style={[styles.vehiclePlate, { color: secondaryTextColor }]}>
+                        {vehicle.anio} {vehicle.placa}
                     </Text>
-                </View>
-                <View style={styles.iconContainer}>
-                    <CarIcon
-                        size={32}
-                        color={theme === 'dark' ? '#B27046' : '#9D7E68'}
-                    />
-                    {vehicle.color && (
-                        <View
-                            style={[styles.colorIndicator, { backgroundColor: vehicle.color }]}
-                        />
-                    )}
                 </View>
             </View>
 
-            <View style={styles.statusSection}>
-                <View style={styles.statusRow}>
-                    <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
-                        Kilometraje
-                    </Text>
-                    <Text style={[styles.statusValue, { color: textColor }]}>
-                        {vehicle.kilometraje_actual?.toLocaleString()} km
+            {/* Imagen del vehículo / Icono */}
+            <View style={styles.vehicleImageContainer}>
+                <CarIcon size={48} color={theme === 'dark' ? '#B27046' : '#9D7E68'} />
+            </View>
+
+            {/* Información de kilometraje y servicio */}
+            <View style={styles.infoRow}>
+                <View style={styles.infoColumn}>
+                    <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>Kilometraje</Text>
+                    <Text style={[styles.infoValue, { color: textColor }]}>
+                        {vehicle.kilometraje_actual?.toLocaleString() || '0'}km
                     </Text>
                 </View>
 
-                <View style={styles.statusRow}>
-                    <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
-                        Último servicio
-                    </Text>
-                    <Text style={[styles.statusValue, { color: textColor }]}>
+                <View style={styles.infoColumn}>
+                    <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>Último servicio</Text>
+                    <Text style={[styles.infoValue, { color: textColor }]}>
                         {nextMaintenance ? formatDate(nextMaintenance.date) : 'No registrado'}
                     </Text>
                 </View>
+            </View>
 
-                <View style={styles.statusRow}>
+            {/* Estado general con barra de progreso */}
+            <View style={styles.statusContainer}>
+                <View style={styles.statusLabelRow}>
                     <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
                         Estado general
                     </Text>
@@ -95,92 +88,93 @@ export const MaintenanceStatusCard: React.FC<MaintenanceStatusCardProps> = ({
                         {maintenanceStatus}%
                     </Text>
                 </View>
-
                 <View style={styles.progressBarContainer}>
                     <View
                         style={[
                             styles.progressBar,
-                            {
-                                width: `${maintenanceStatus}%`,
-                                backgroundColor: getStatusColor()
-                            }
+                            { width: `${maintenanceStatus}%`, backgroundColor: getStatusColor() }
                         ]}
                     />
                 </View>
             </View>
 
+            {/* Próximo mantenimiento */}
             <View style={styles.nextMaintenanceContainer}>
-                <Text style={[styles.nextMaintenanceLabel, { color: textColor }]}>
-                    Próximo Mantenimiento
-                </Text>
-                <Text style={[styles.nextMaintenanceDate, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
-                    {nextMaintenance ? formatDate(nextMaintenance.date) : 'No programado'}
-                </Text>
-            </View>
+                <View>
+                    <Text style={[styles.nextMaintenanceLabel, { color: secondaryTextColor }]}>
+                        Próximo Mantenimiento
+                    </Text>
+                    <Text style={[styles.nextMaintenanceDate, { color: textColor }]}>
+                        {nextMaintenance ? formatDate(nextMaintenance.date) : '15/02/2025'}
+                    </Text>
+                </View>
 
-            <Button
-                buttonVariant="primary"
-                buttonSize="medium"
-                onPress={onScheduleMaintenance}
-                style={styles.scheduleButton}
-            >
-                Programar
-            </Button>
+                <Button
+                    buttonVariant="primary"
+                    buttonSize="small"
+                    onPress={onScheduleMaintenance}
+                    style={styles.scheduleButton}
+                >
+                    Programar
+                </Button>
+            </View>
         </Card>
     );
 };
 
 const styles = StyleSheet.create({
     card: {
-        marginHorizontal: 16,
-        marginVertical: 8,
+        marginHorizontal: 0,
+        marginVertical: 0,
         padding: 16,
+        borderRadius: 12,
     },
-    headerContainer: {
+    vehicleHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    vehicleInfo: {
-        flex: 1,
+        marginBottom: 12,
     },
     vehicleName: {
         fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 4,
     },
-    vehicleDetails: {
+    vehiclePlate: {
         fontSize: 14,
     },
-    iconContainer: {
-        position: 'relative',
-    },
-    colorIndicator: {
-        position: 'absolute',
-        bottom: -4,
-        right: -4,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: '#FFF',
-    },
-    statusSection: {
+    vehicleImageContainer: {
+        height: 120,
+        backgroundColor: 'rgba(0,0,0,0.03)',
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: 16,
     },
-    statusRow: {
+    infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 16,
+    },
+    infoColumn: {
+        flex: 1,
+    },
+    infoLabel: {
+        fontSize: 14,
+        marginBottom: 4,
+    },
+    infoValue: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    statusContainer: {
+        marginBottom: 16,
+    },
+    statusLabelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 4,
     },
     statusLabel: {
         fontSize: 14,
-    },
-    statusValue: {
-        fontSize: 14,
-        fontWeight: '500',
     },
     statusPercentage: {
         fontSize: 14,
@@ -190,8 +184,6 @@ const styles = StyleSheet.create({
         height: 8,
         backgroundColor: '#E0E0E0',
         borderRadius: 4,
-        marginTop: 4,
-        marginBottom: 8,
         overflow: 'hidden',
     },
     progressBar: {
@@ -202,18 +194,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
     },
     nextMaintenanceLabel: {
-        fontSize: 16,
-        fontWeight: '500',
+        fontSize: 14,
+        marginBottom: 4,
     },
     nextMaintenanceDate: {
         fontSize: 16,
         fontWeight: 'bold',
     },
     scheduleButton: {
-        alignSelf: 'flex-end',
+        paddingHorizontal: 16,
     },
 });
 

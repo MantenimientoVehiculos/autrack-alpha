@@ -1,6 +1,6 @@
 // src/modules/vehicles/screens/VehicleMaintenanceScreen.tsx
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, FlatList, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
@@ -9,7 +9,6 @@ import { PlusIcon } from '@/src/shared/components/ui/Icons';
 import { useVehicles } from '../hooks/useVehicles';
 import { useMaintenance } from '@/src/modules/maintenance/hooks/useMaintenance';
 import { MaintenanceStatusCard } from '@/src/modules/maintenance/components/MaintenanceStatusCard';
-import { MaintenanceCard } from '@/src/modules/maintenance/components/MaintenanceCard';
 import { MaintenanceRecord } from '@/src/modules/maintenance/models/maintenance';
 
 export const VehicleMaintenanceScreen: React.FC = () => {
@@ -47,7 +46,7 @@ export const VehicleMaintenanceScreen: React.FC = () => {
                 new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
             );
             // Obtener los 3 más recientes
-            setRecentRecords(sorted.slice(0, 3));
+            setRecentRecords(sorted.slice(0, 5));
         } else {
             setRecentRecords([]);
         }
@@ -72,7 +71,7 @@ export const VehicleMaintenanceScreen: React.FC = () => {
 
     // Calcular estado general de mantenimiento (simplificado)
     const maintenanceStatus = useMemo(() => {
-        if (!vehicle || recentRecords.length === 0) return 65; // Valor por defecto
+        if (!vehicle || recentRecords.length === 0) return 85; // Valor por defecto
 
         // Simplificación: calcular basado en km desde último mantenimiento
         const lastServiceKm = recentRecords[0].kilometraje;
@@ -119,10 +118,18 @@ export const VehicleMaintenanceScreen: React.FC = () => {
         );
     };
 
+    // Formatear fecha para los registros de mantenimiento
+    const formatDate = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString();
+    };
+
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
     const containerBg = theme === 'dark' ? '#111111' : '#FFFFFF';
+    const cardColor = theme === 'dark' ? '#222222' : '#FFFFFF';
+    const borderColor = theme === 'dark' ? '#333333' : '#EEEEEE';
 
     if (!vehicle) {
         return (
@@ -147,7 +154,7 @@ export const VehicleMaintenanceScreen: React.FC = () => {
                 showBackButton={true}
             />
 
-            <View style={styles.content}>
+            <ScrollView style={styles.content}>
                 {/* Tarjeta de estado de mantenimiento */}
                 <MaintenanceStatusCard
                     vehicle={vehicle}
@@ -170,28 +177,50 @@ export const VehicleMaintenanceScreen: React.FC = () => {
                     </View>
 
                     {recentRecords.length > 0 ? (
-                        recentRecords.map((record) => (
-                            <MaintenanceCard
-                                key={record.id_registro}
-                                record={record}
-                                onDelete={handleDeleteMaintenance}
-                            />
-                        ))
+                        <View style={styles.maintenancesList}>
+                            {recentRecords.map((record) => (
+                                <View
+                                    key={record.id_registro}
+                                    style={[
+                                        styles.maintenanceItem,
+                                        { backgroundColor: cardColor, borderColor: borderColor }
+                                    ]}
+                                >
+                                    <View style={styles.maintenanceItemHeader}>
+                                        <Text style={[styles.maintenanceType, { color: textColor }]}>
+                                            {record.tipo_mantenimiento?.nombre || "Mantenimiento"}
+                                        </Text>
+                                        <Text style={[styles.maintenanceCost, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
+                                            ${record.costo.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.maintenanceItemDetails}>
+                                        <Text style={[styles.dateText, { color: secondaryTextColor }]}>
+                                            {formatDate(record.fecha)}
+                                        </Text>
+                                        <Text style={[styles.kmText, { color: secondaryTextColor }]}>
+                                            {record.kilometraje.toLocaleString()}km
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
                     ) : (
                         <Text style={[styles.emptyText, { color: secondaryTextColor }]}>
                             No hay registros de mantenimiento
                         </Text>
                     )}
                 </View>
-            </View>
+            </ScrollView>
 
             {/* Botones de acción */}
-            <View style={styles.buttonContainer}>
+            <View style={styles.buttonsContainer}>
                 <Button
                     buttonVariant="outline"
                     buttonSize="large"
-                    onPress={() => router.back()}
-                    style={styles.backButton}
+                    onPress={() => handleDeleteMaintenance(recentRecords[0]?.id_registro || 0)}
+                    style={styles.deleteButton}
+                    disabled={recentRecords.length === 0}
                 >
                     Eliminar mantenimiento
                 </Button>
@@ -228,14 +257,13 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     recentMaintenanceSection: {
-        marginTop: 16,
+        marginTop: 24,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
-        paddingHorizontal: 16,
+        marginBottom: 12,
     },
     sectionTitle: {
         fontSize: 18,
@@ -245,17 +273,55 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
+    maintenancesList: {
+        marginTop: 8,
+    },
+    maintenanceItem: {
+        padding: 16,
+        borderRadius: 8,
+        marginBottom: 10,
+        borderWidth: 1,
+        elevation: 1,
+    },
+    maintenanceItemHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    maintenanceType: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    maintenanceCost: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    maintenanceItemDetails: {
+        flexDirection: 'row',
+    },
+    dateText: {
+        fontSize: 14,
+        marginRight: 12,
+    },
+    kmText: {
+        fontSize: 14,
+    },
     emptyText: {
         textAlign: 'center',
         padding: 16,
         fontSize: 14,
     },
-    buttonContainer: {
+    buttonsContainer: {
         padding: 16,
+        paddingBottom: 24,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
         flexDirection: 'row',
         justifyContent: 'space-between',
+        backgroundColor: 'transparent',
     },
-    backButton: {
+    deleteButton: {
         flex: 1,
         marginRight: 8,
     },

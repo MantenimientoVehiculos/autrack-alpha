@@ -1,6 +1,6 @@
 // src/modules/maintenance/components/MaintenanceForm.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,8 +8,8 @@ import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Input } from '@/src/shared/components/ui/Input';
 import { Button } from '@/src/shared/components/ui/Button';
-import { MaintenanceRecordCreate } from '../models/maintenance';
 import TypeCategorySelect from './TypeCategorySelect';
+import { MaintenanceRecordCreate } from '../models/maintenance';
 import { useMaintenance } from '../hooks/useMaintenance';
 
 // Esquema de validación con Zod
@@ -61,7 +61,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         isLoading: typesLoading,
         error: typesError,
         clearError
-    } = useMaintenance();
+    } = useMaintenance(vehicleId);
 
     // Estado para categoría y tipo seleccionados
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -78,7 +78,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     };
 
     // Configurar React Hook Form con Zod
-    const { control, handleSubmit, formState: { errors } } = useForm<MaintenanceFormData>({
+    const { control, handleSubmit, formState: { errors }, setValue, getValues } = useForm<MaintenanceFormData>({
         resolver: zodResolver(maintenanceSchema),
         defaultValues: {
             fecha: getCurrentDate(),
@@ -90,6 +90,14 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             costo_estimado: '',
         }
     });
+
+    // Cargar kilometraje del vehículo al iniciar
+    useEffect(() => {
+        // Aquí podrías cargar el kilometraje actual del vehículo
+        // y asignarlo al campo de kilometraje
+        // Por ejemplo:
+        // setValue('kilometraje', vehicle.kilometraje_actual.toString());
+    }, []);
 
     // Manejar selección de categoría
     const handleSelectCategory = (categoryId: number) => {
@@ -106,6 +114,11 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
     // Crear tipo personalizado
     const handleCreateCustomType = async (data: { id_categoria: number, nombre: string, descripcion: string }) => {
+        if (!data.id_categoria) {
+            Alert.alert('Error', 'Primero debe seleccionar una categoría');
+            return;
+        }
+
         const result = await createCustomMaintenanceType(data);
         if (result.success && result.data) {
             setSelectedTypeId(result.data.id_tipo);
@@ -319,7 +332,7 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         padding: 16,
-        paddingBottom: 40,
+        paddingBottom: 90, // Añadir espacio extra para evitar que el botón flotante tape contenido
     },
     sectionTitle: {
         fontSize: 18,
