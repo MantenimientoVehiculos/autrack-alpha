@@ -6,7 +6,9 @@ import {
     MaintenanceType,
     MaintenanceRecord,
     MaintenanceRecordCreate,
-    CustomMaintenanceTypeCreate
+    CustomMaintenanceTypeCreate,
+    MaintenanceReminder,
+    NextMaintenanceResponse
 } from '../models/maintenance';
 import * as Haptics from 'expo-haptics';
 
@@ -14,6 +16,8 @@ export const useMaintenance = (vehicleId?: number) => {
     const [categories, setCategories] = useState<MaintenanceCategory[]>([]);
     const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>([]);
     const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
+    const [maintenanceReminders, setMaintenanceReminders] = useState<MaintenanceReminder[]>([]);
+    const [nextMaintenance, setNextMaintenance] = useState<NextMaintenanceResponse | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +80,52 @@ export const useMaintenance = (vehicleId?: number) => {
         }
     }, [vehicleId]);
 
+    // Cargar recordatorios de mantenimiento
+    const loadMaintenanceReminders = useCallback(async (id?: number) => {
+        if (!id && !vehicleId) return;
+
+        const vId = id || vehicleId;
+        if (!vId) return;
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            const remindersList = await maintenanceApi.getMaintenanceRemindersByVehicle(vId);
+            setMaintenanceReminders(remindersList);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Error al cargar recordatorios de mantenimiento');
+            Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Error
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, [vehicleId]);
+
+    // Cargar información del próximo mantenimiento
+    const loadNextMaintenance = useCallback(async (id?: number) => {
+        if (!id && !vehicleId) return;
+
+        const vId = id || vehicleId;
+        if (!vId) return;
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            const nextMaintenanceData = await maintenanceApi.getNextMaintenance(vId);
+            setNextMaintenance(nextMaintenanceData);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Error al cargar información del próximo mantenimiento');
+            Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Error
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, [vehicleId]);
+
     // Crear un tipo de mantenimiento personalizado
     const createCustomMaintenanceType = useCallback(async (data: CustomMaintenanceTypeCreate) => {
         setIsLoading(true);
@@ -112,6 +162,19 @@ export const useMaintenance = (vehicleId?: number) => {
                 setMaintenanceRecords(prev => [...prev, result.record]);
             }
 
+            // Si se necesitaba configuración (primera vez para este tipo) y se proporcionaron 
+            // parámetros de programación, se habrá creado la configuración automáticamente
+            if (result.needsConfig) {
+                // La configuración ya fue creada por el servidor con los datos proporcionados
+                console.log('Se creó configuración de mantenimiento:', result.config);
+            }
+
+            // Actualizar recordatorios y próximo mantenimiento si existe ID de vehículo
+            if (vehicleId) {
+                loadMaintenanceReminders(vehicleId);
+                loadNextMaintenance(vehicleId);
+            }
+
             await Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
             );
@@ -127,7 +190,7 @@ export const useMaintenance = (vehicleId?: number) => {
         } finally {
             setIsLoading(false);
         }
-    }, [vehicleId]);
+    }, [vehicleId, loadMaintenanceReminders, loadNextMaintenance]);
 
     // Eliminar un registro de mantenimiento
     const deleteMaintenanceRecord = useCallback(async (recordId: number) => {
@@ -138,6 +201,13 @@ export const useMaintenance = (vehicleId?: number) => {
             setMaintenanceRecords(prev =>
                 prev.filter(record => record.id_registro !== recordId)
             );
+
+            // Actualizar recordatorios y próximo mantenimiento si existe ID de vehículo
+            if (vehicleId) {
+                loadMaintenanceReminders(vehicleId);
+                loadNextMaintenance(vehicleId);
+            }
+
             await Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
             );
@@ -153,7 +223,40 @@ export const useMaintenance = (vehicleId?: number) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [vehicleId, loadMaintenanceReminders, loadNextMaintenance]);
+
+    // Verificar mantenimientos manualmente
+    const checkMaintenance = useCallback(async (id?: number) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const result = await maintenanceApi.checkMaintenance(id);
+
+            // Actualizar recordatorios y próximo mantenimiento si existe ID de vehículo
+            if (vehicleId || id) {
+                const vId = id || vehicleId;
+                if (vId) {
+                    loadMaintenanceReminders(vId);
+                    loadNextMaintenance(vId);
+                }
+            }
+
+            await Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+            );
+            return { success: true, message: result.message };
+        } catch (err: any) {
+            console.error(err);
+            const msg = err.message || 'Error al verificar mantenimientos';
+            setError(msg);
+            await Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Error
+            );
+            return { success: false, error: msg };
+        } finally {
+            setIsLoading(false);
+        }
+    }, [vehicleId, loadMaintenanceReminders, loadNextMaintenance]);
 
     // Limpiar errores
     const clearError = useCallback(() => {
@@ -184,21 +287,35 @@ export const useMaintenance = (vehicleId?: number) => {
         loadMaintenanceTypes();
         if (vehicleId) {
             loadMaintenanceRecords();
+            loadMaintenanceReminders();
+            loadNextMaintenance();
         }
-    }, [loadCategories, loadMaintenanceTypes, loadMaintenanceRecords, vehicleId]);
+    }, [
+        loadCategories,
+        loadMaintenanceTypes,
+        loadMaintenanceRecords,
+        loadMaintenanceReminders,
+        loadNextMaintenance,
+        vehicleId
+    ]);
 
     return {
         categories,
         maintenanceTypes,
         maintenanceRecords,
+        maintenanceReminders,
+        nextMaintenance,
         isLoading,
         error,
         loadCategories,
         loadMaintenanceTypes,
         loadMaintenanceRecords,
+        loadMaintenanceReminders,
+        loadNextMaintenance,
         createCustomMaintenanceType,
         createMaintenanceRecord,
         deleteMaintenanceRecord,
+        checkMaintenance,
         clearError,
         calculateNextMaintenanceDate,
         calculateNextMaintenanceKm

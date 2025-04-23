@@ -2,9 +2,10 @@
 import { Stack } from 'expo-router';
 
 export type MaintenanceStackParamList = {
-    'add': { vehicleId: string };
+    'add': { vehicleId: string; typeId?: string };
     'history': { vehicleId: string };
     'detail': { recordId: string };
+    'schedule': { vehicleId: string };
 };
 
 export const MaintenanceStack = () => {
@@ -28,6 +29,13 @@ export const MaintenanceStack = () => {
                 name="detail"
                 options={{
                     title: 'Detalle de Mantenimiento',
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen
+                name="schedule"
+                options={{
+                    title: 'Programación de Mantenimiento',
                     headerShown: false
                 }}
             />

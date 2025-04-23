@@ -15,13 +15,15 @@ interface MaintenanceStatusCardProps {
     };
     maintenanceStatus: number; // Porcentaje de 0 a 100
     onScheduleMaintenance: () => void;
+    onViewSchedule: () => void;
 }
 
 export const MaintenanceStatusCard: React.FC<MaintenanceStatusCardProps> = ({
     vehicle,
     nextMaintenance,
     maintenanceStatus,
-    onScheduleMaintenance
+    onScheduleMaintenance,
+    onViewSchedule
 }) => {
     const { theme } = useAppTheme();
 
@@ -96,6 +98,12 @@ export const MaintenanceStatusCard: React.FC<MaintenanceStatusCardProps> = ({
                         ]}
                     />
                 </View>
+                <Text
+                    style={[styles.statusInfoText, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}
+                    onPress={onViewSchedule}
+                >
+                    Ver programación de mantenimiento
+                </Text>
             </View>
 
             {/* Próximo mantenimiento */}
@@ -189,6 +197,12 @@ const styles = StyleSheet.create({
     progressBar: {
         height: '100%',
         borderRadius: 4,
+    },
+    statusInfoText: {
+        fontSize: 12,
+        textAlign: 'right',
+        marginTop: 4,
+        fontWeight: '500',
     },
     nextMaintenanceContainer: {
         flexDirection: 'row',

@@ -6,7 +6,10 @@ import {
     CustomMaintenanceTypeCreate,
     MaintenanceRecord,
     MaintenanceRecordCreate,
-    MaintenanceRecordResponse
+    MaintenanceRecordResponse,
+    MaintenanceReminder,
+    MaintenanceReminderCreate,
+    NextMaintenanceResponse
 } from '../models/maintenance';
 
 class MaintenanceApi {
@@ -46,6 +49,39 @@ class MaintenanceApi {
     // Eliminar un registro de mantenimiento
     async deleteMaintenanceRecord(recordId: number): Promise<void> {
         await apiClient.delete(`/maintenance/records/${recordId}`);
+    }
+
+    // Crear un recordatorio de mantenimiento
+    async createMaintenanceReminder(
+        data: MaintenanceReminderCreate
+    ): Promise<MaintenanceReminder> {
+        return apiClient.post<MaintenanceReminder>('/maintenance/reminders', data);
+    }
+
+    // Obtener recordatorios de mantenimiento por vehículo
+    async getMaintenanceRemindersByVehicle(
+        vehicleId: number
+    ): Promise<MaintenanceReminder[]> {
+        return apiClient.get<MaintenanceReminder[]>(
+            `/maintenance/vehicles/${vehicleId}/reminders`
+        );
+    }
+
+    // Calcular próximo mantenimiento
+    async getNextMaintenance(
+        vehicleId: number
+    ): Promise<NextMaintenanceResponse> {
+        return apiClient.get<NextMaintenanceResponse>(
+            `/maintenance/reminders/vehicles/${vehicleId}/next`
+        );
+    }
+
+    // Verificar mantenimientos manualmente
+    async checkMaintenance(vehicleId?: number): Promise<{ success: boolean; message: string }> {
+        const url = vehicleId
+            ? `/notifications/check-maintenance?vehicleId=${vehicleId}`
+            : '/notifications/check-maintenance';
+        return apiClient.post<{ success: boolean; message: string }>(url);
     }
 }
 

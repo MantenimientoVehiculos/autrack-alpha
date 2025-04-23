@@ -57,6 +57,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     const {
         categories,
         maintenanceTypes,
+        maintenanceRecords,
         createCustomMaintenanceType,
         isLoading: typesLoading,
         error: typesError,
@@ -67,6 +68,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
+    const [isFirstTimeConfig, setIsFirstTimeConfig] = useState<boolean>(false);
+    const [showConfigFields, setShowConfigFields] = useState<boolean>(false);
 
     // Obtener fecha actual en formato YYYY-MM-DD
     const getCurrentDate = (): string => {
@@ -78,7 +81,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     };
 
     // Configurar React Hook Form con Zod
-    const { control, handleSubmit, formState: { errors }, setValue, getValues } = useForm<MaintenanceFormData>({
+    const { control, handleSubmit, formState: { errors }, setValue, watch } = useForm<MaintenanceFormData>({
         resolver: zodResolver(maintenanceSchema),
         defaultValues: {
             fecha: getCurrentDate(),
@@ -90,6 +93,28 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             costo_estimado: '',
         }
     });
+
+    // Observar el tipo de mantenimiento seleccionado
+    useEffect(() => {
+        if (selectedTypeId && maintenanceRecords.length > 0) {
+            // Comprobar si ya existe un registro de este tipo para este vehículo
+            const existingRecord = maintenanceRecords.find(
+                record => record.id_tipo === selectedTypeId && record.id_vehiculo === vehicleId
+            );
+
+            // Si no existe registro previo, es primera configuración
+            const isFirstTime = !existingRecord;
+            setIsFirstTimeConfig(isFirstTime);
+            setShowConfigFields(isFirstTime);
+        } else if (selectedTypeId) {
+            // Si no hay registros, es primera configuración
+            setIsFirstTimeConfig(true);
+            setShowConfigFields(true);
+        } else {
+            setIsFirstTimeConfig(false);
+            setShowConfigFields(false);
+        }
+    }, [selectedTypeId, maintenanceRecords, vehicleId]);
 
     // Cargar kilometraje del vehículo al iniciar
     useEffect(() => {
@@ -145,10 +170,14 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             kilometraje: parseInt(data.kilometraje),
             costo: parseFloat(data.costo),
             notas: data.notas || undefined,
-            frecuencia_cambio_meses: data.frecuencia_cambio_meses ? parseInt(data.frecuencia_cambio_meses) : undefined,
-            frecuencia_cambio_km: data.frecuencia_cambio_km ? parseInt(data.frecuencia_cambio_km) : undefined,
-            costo_estimado: data.costo_estimado ? parseFloat(data.costo_estimado) : undefined,
         };
+
+        // Añadir configuración solo si es primera vez para este tipo de mantenimiento
+        if (isFirstTimeConfig) {
+            maintenanceData.frecuencia_cambio_meses = data.frecuencia_cambio_meses ? parseInt(data.frecuencia_cambio_meses) : undefined;
+            maintenanceData.frecuencia_cambio_km = data.frecuencia_cambio_km ? parseInt(data.frecuencia_cambio_km) : undefined;
+            maintenanceData.costo_estimado = data.costo_estimado ? parseFloat(data.costo_estimado) : undefined;
+        }
 
         onSubmit(maintenanceData);
     };
@@ -245,63 +274,74 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
             />
 
-            <Text style={[styles.sectionTitle, { color: textColor }]}>
-                Programación de mantenimiento
-            </Text>
-            <Text style={[styles.sectionDescription, { color: secondaryTextColor }]}>
-                Establece cada cuánto tiempo o kilometraje debería realizarse este mantenimiento para futuras alertas.
-            </Text>
+            {/* Sección de configuración de programación (solo se muestra si es primera vez) */}
+            {showConfigFields && (
+                <>
+                    <Text style={[styles.sectionTitle, { color: textColor }]}>
+                        Programación de mantenimiento
+                    </Text>
+                    <Text style={[styles.sectionDescription, { color: secondaryTextColor }]}>
+                        Establece cada cuánto tiempo o kilometraje debería realizarse este mantenimiento para futuras alertas.
+                    </Text>
+                    <View style={styles.configInfoContainer}>
+                        <Text style={[styles.configInfoText, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
+                            Este es el primer registro de este tipo de mantenimiento para este vehículo.
+                            La configuración que establezca se utilizará para programar los próximos mantenimientos.
+                        </Text>
+                    </View>
 
-            {/* Frecuencia en meses */}
-            <Controller
-                control={control}
-                name="frecuencia_cambio_meses"
-                render={({ field: { onChange, onBlur, value } }) => (
-                    <Input
-                        label="Frecuencia en meses"
-                        placeholder="6"
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        error={errors.frecuencia_cambio_meses?.message}
-                        keyboardType="numeric"
+                    {/* Frecuencia en meses */}
+                    <Controller
+                        control={control}
+                        name="frecuencia_cambio_meses"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Frecuencia en meses"
+                                placeholder="6"
+                                value={value || ''}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.frecuencia_cambio_meses?.message}
+                                keyboardType="numeric"
+                            />
+                        )}
                     />
-                )}
-            />
 
-            {/* Frecuencia en kilómetros */}
-            <Controller
-                control={control}
-                name="frecuencia_cambio_km"
-                render={({ field: { onChange, onBlur, value } }) => (
-                    <Input
-                        label="Frecuencia en kilómetros"
-                        placeholder="5000"
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        error={errors.frecuencia_cambio_km?.message}
-                        keyboardType="numeric"
+                    {/* Frecuencia en kilómetros */}
+                    <Controller
+                        control={control}
+                        name="frecuencia_cambio_km"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Frecuencia en kilómetros"
+                                placeholder="5000"
+                                value={value || ''}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.frecuencia_cambio_km?.message}
+                                keyboardType="numeric"
+                            />
+                        )}
                     />
-                )}
-            />
 
-            {/* Costo estimado */}
-            <Controller
-                control={control}
-                name="costo_estimado"
-                render={({ field: { onChange, onBlur, value } }) => (
-                    <Input
-                        label="Costo estimado para próximo servicio ($)"
-                        placeholder="180.00"
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        error={errors.costo_estimado?.message}
-                        keyboardType="numeric"
+                    {/* Costo estimado */}
+                    <Controller
+                        control={control}
+                        name="costo_estimado"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <Input
+                                label="Costo estimado para próximo servicio ($)"
+                                placeholder="180.00"
+                                value={value || ''}
+                                onChangeText={onChange}
+                                onBlur={onBlur}
+                                error={errors.costo_estimado?.message}
+                                keyboardType="numeric"
+                            />
+                        )}
                     />
-                )}
-            />
+                </>
+            )}
 
             {/* Error del formulario */}
             {formError && (
@@ -343,6 +383,15 @@ const styles = StyleSheet.create({
     sectionDescription: {
         fontSize: 14,
         marginBottom: 16,
+    },
+    configInfoContainer: {
+        backgroundColor: 'rgba(157, 126, 104, 0.1)',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+    },
+    configInfoText: {
+        fontSize: 14,
     },
     formErrorText: {
         color: '#CF6679',

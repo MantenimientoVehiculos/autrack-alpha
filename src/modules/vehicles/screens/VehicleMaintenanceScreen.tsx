@@ -20,7 +20,9 @@ export const VehicleMaintenanceScreen: React.FC = () => {
     const { vehicles, loadVehicles } = useVehicles();
     const {
         maintenanceRecords,
+        nextMaintenance,
         loadMaintenanceRecords,
+        loadNextMaintenance,
         deleteMaintenanceRecord,
         isLoading
     } = useMaintenance(vehicleId);
@@ -32,11 +34,13 @@ export const VehicleMaintenanceScreen: React.FC = () => {
     useEffect(() => {
         if (vehicleId) {
             loadMaintenanceRecords(vehicleId);
+            loadNextMaintenance(vehicleId);
+
             if (!vehicle) {
                 loadVehicles();
             }
         }
-    }, [vehicleId, loadMaintenanceRecords, vehicle, loadVehicles]);
+    }, [vehicleId, loadMaintenanceRecords, loadNextMaintenance, vehicle, loadVehicles]);
 
     // Filtrar y ordenar registros de mantenimiento recientes
     useEffect(() => {
@@ -53,24 +57,71 @@ export const VehicleMaintenanceScreen: React.FC = () => {
     }, [maintenanceRecords]);
 
     // Calcular el próximo mantenimiento recomendado
-    const nextMaintenance = useMemo(() => {
-        if (recentRecords.length === 0 || !vehicle) return null;
+    const nextMaintenanceInfo = useMemo(() => {
+        // Si tenemos información de la API sobre el próximo mantenimiento
+        if (nextMaintenance && nextMaintenance.maintenance_items.length > 0) {
+            // Buscar el mantenimiento más próximo
+            const sortedByDate = [...nextMaintenance.maintenance_items]
+                .sort((a, b) =>
+                    new Date(a.next_maintenance.by_date).getTime() -
+                    new Date(b.next_maintenance.by_date).getTime()
+                );
 
-        // Tomar el mantenimiento más reciente
-        const lastMaintenance = recentRecords[0];
+            const nextItem = sortedByDate[0];
 
-        // Ejemplo simplificado: programar próximo mantenimiento a los 5000 km
-        const nextDate = new Date();
-        nextDate.setMonth(nextDate.getMonth() + 3); // 3 meses por defecto
+            return {
+                date: nextItem.next_maintenance.by_date,
+                type: nextItem.type.nombre
+            };
+        }
 
-        return {
-            date: nextDate.toISOString(),
-            type: lastMaintenance.tipo_mantenimiento?.nombre || 'Mantenimiento general'
-        };
-    }, [recentRecords, vehicle]);
+        // Fallback calculado a partir de los registros
+        if (recentRecords.length > 0 && vehicle) {
+            // Tomar el mantenimiento más reciente
+            const lastMaintenance = recentRecords[0];
 
-    // Calcular estado general de mantenimiento (simplificado)
+            // Ejemplo simplificado: programar próximo mantenimiento a los 5000 km
+            const nextDate = new Date();
+            nextDate.setMonth(nextDate.getMonth() + 3); // 3 meses por defecto
+
+            return {
+                date: nextDate.toISOString(),
+                type: lastMaintenance.tipo_mantenimiento?.nombre || 'Mantenimiento general'
+            };
+        }
+
+        return null;
+    }, [nextMaintenance, recentRecords, vehicle]);
+
+    // Calcular estado general de mantenimiento
     const maintenanceStatus = useMemo(() => {
+        // Si tenemos información de la API sobre el próximo mantenimiento
+        if (nextMaintenance && nextMaintenance.maintenance_items.length > 0) {
+            // Calcular promedio de estado basado en días y km restantes
+            let totalPercentage = 0;
+            let itemsCount = 0;
+
+            nextMaintenance.maintenance_items.forEach(item => {
+                // Convertir días restantes a porcentaje (máximo 180 días = 100%)
+                const daysPercentage = Math.min(100, (item.status.time_status.days_remaining / 180) * 100);
+
+                // Convertir km restantes a porcentaje (máximo 5000 km = 100%)
+                const kmPercentage = Math.min(100, (item.status.km_status.km_remaining / 5000) * 100);
+
+                // Tomar el menor de los dos porcentajes
+                const itemPercentage = Math.min(daysPercentage, kmPercentage);
+
+                totalPercentage += itemPercentage;
+                itemsCount++;
+            });
+
+            // Calcular promedio
+            if (itemsCount > 0) {
+                return Math.round(totalPercentage / itemsCount);
+            }
+        }
+
+        // Fallback si no hay información de la API
         if (!vehicle || recentRecords.length === 0) return 85; // Valor por defecto
 
         // Simplificación: calcular basado en km desde último mantenimiento
@@ -83,7 +134,7 @@ export const VehicleMaintenanceScreen: React.FC = () => {
         const percentage = Math.max(0, Math.min(100, 100 - (kmDifference / recommendedInterval * 100)));
 
         return Math.round(percentage);
-    }, [vehicle, recentRecords]);
+    }, [vehicle, recentRecords, nextMaintenance]);
 
     // Navegar a la pantalla de agregar mantenimiento
     const navigateToAddMaintenance = () => {
@@ -93,6 +144,11 @@ export const VehicleMaintenanceScreen: React.FC = () => {
     // Navegar a la pantalla de historial completo
     const navigateToMaintenanceHistory = () => {
         router.push(`/maintenance/history?vehicleId=${vehicleId}`);
+    };
+
+    // Navegar a la pantalla de programación de mantenimiento
+    const navigateToMaintenanceSchedule = () => {
+        router.push(`/maintenance/schedule?vehicleId=${vehicleId}`);
     };
 
     // Manejar la eliminación de un registro
@@ -158,9 +214,10 @@ export const VehicleMaintenanceScreen: React.FC = () => {
                 {/* Tarjeta de estado de mantenimiento */}
                 <MaintenanceStatusCard
                     vehicle={vehicle}
-                    nextMaintenance={nextMaintenance || undefined}
+                    nextMaintenance={nextMaintenanceInfo || undefined}
                     maintenanceStatus={maintenanceStatus}
                     onScheduleMaintenance={navigateToAddMaintenance}
+                    onViewSchedule={navigateToMaintenanceSchedule}
                 />
 
                 {/* Sección de mantenimientos recientes */}
@@ -217,21 +274,20 @@ export const VehicleMaintenanceScreen: React.FC = () => {
             <View style={styles.buttonsContainer}>
                 <Button
                     buttonVariant="outline"
-                    buttonSize="large"
-                    onPress={() => handleDeleteMaintenance(recentRecords[0]?.id_registro || 0)}
-                    style={styles.deleteButton}
-                    disabled={recentRecords.length === 0}
+                    buttonSize="medium"
+                    onPress={navigateToMaintenanceSchedule}
+                    style={styles.scheduleButton}
                 >
-                    Eliminar mantenimiento
+                    Ver Programación
                 </Button>
 
                 <Button
                     buttonVariant="primary"
-                    buttonSize="large"
+                    buttonSize="medium"
                     onPress={navigateToAddMaintenance}
                     style={styles.addButton}
                 >
-                    Agregar Mantenimiento
+                    Registrar Mantenimiento
                 </Button>
             </View>
         </View>
@@ -321,7 +377,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         backgroundColor: 'transparent',
     },
-    deleteButton: {
+    scheduleButton: {
         flex: 1,
         marginRight: 8,
     },

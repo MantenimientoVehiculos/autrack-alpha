@@ -21,8 +21,10 @@ export const MaintenanceFormScreen: React.FC = () => {
         createMaintenanceRecord,
         categories,
         maintenanceTypes,
+        maintenanceRecords,
         loadCategories,
         loadMaintenanceTypes,
+        loadMaintenanceRecords,
         isLoading
     } = useMaintenance(vehicleId);
 
@@ -38,10 +40,11 @@ export const MaintenanceFormScreen: React.FC = () => {
                     await loadVehicles();
                 }
 
-                // Cargar categorías y tipos de mantenimiento
+                // Cargar categorías, tipos y registros existentes de mantenimiento
                 await Promise.all([
                     loadCategories(),
-                    loadMaintenanceTypes()
+                    loadMaintenanceTypes(),
+                    loadMaintenanceRecords(vehicleId)
                 ]);
 
                 setInitialized(true);
@@ -59,7 +62,7 @@ export const MaintenanceFormScreen: React.FC = () => {
         };
 
         init();
-    }, [vehicleId, vehicle, loadVehicles, loadCategories, loadMaintenanceTypes, router]);
+    }, [vehicleId, vehicle, loadVehicles, loadCategories, loadMaintenanceTypes, loadMaintenanceRecords, router]);
 
     // Si no hay vehículo o los datos no se han inicializado aún, mostrar cargando
     if (!vehicle || !initialized) {
@@ -88,9 +91,16 @@ export const MaintenanceFormScreen: React.FC = () => {
             });
 
             if (result.success) {
+                const isFirstConfig = result.data?.needsConfig;
+
+                let message = 'Mantenimiento registrado correctamente';
+                if (isFirstConfig && result.data?.config) {
+                    message += '. Se ha configurado la programación para futuros mantenimientos.';
+                }
+
                 Alert.alert(
                     'Éxito',
-                    'Mantenimiento registrado correctamente',
+                    message,
                     [{
                         text: 'Ver detalles',
                         onPress: () => router.replace(`/vehicles/${vehicleId}`)
