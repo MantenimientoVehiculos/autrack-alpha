@@ -4,6 +4,8 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-na
 import { usePathname, useRouter } from 'expo-router';
 import { HomeIcon, CarIcon, BarChartIcon, SettingsIcon } from './Icons';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
+import NotificationBadge from './NotificationBadge';
+import { NotificationProvider } from '@/src/modules/notifications/context/NotificationProvider';
 
 // Definición de rutas con patrones para identificar pantallas hijas
 const routes = [
@@ -24,11 +26,12 @@ const routes = [
         pattern: /^\/vehicles($|\/)/
     },
     {
-        name: 'reports',
-        path: '/reports',
-        label: 'Reportes',
+        name: 'notifications',
+        path: '/notifications',
+        label: 'Notificaciones',
         icon: BarChartIcon,
-        pattern: /^\/reports($|\/)/
+        pattern: /^\/notifications($|\/)/,
+        showBadge: true
     },
     {
         name: 'settings',
@@ -59,45 +62,53 @@ export const BottomNav: React.FC = () => {
     const themeColors = getThemeColors();
 
     return (
-        <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-            <SafeAreaView style={[styles.safeAreaContainer, { backgroundColor: themeColors.card }]}>
-                <View style={[styles.navContent, { backgroundColor: themeColors.card }]}>
-                    {routes.map((route) => {
-                        // Comprobar si la ruta actual coincide con el patrón de esta pestaña
-                        const isActive = route.pattern.test(pathname);
-                        const Icon = route.icon;
+        <NotificationProvider>
+            <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+                <SafeAreaView style={[styles.safeAreaContainer, { backgroundColor: themeColors.card }]}>
+                    <View style={[styles.navContent, { backgroundColor: themeColors.card }]}>
+                        {routes.map((route) => {
+                            // Comprobar si la ruta actual coincide con el patrón de esta pestaña
+                            const isActive = route.pattern.test(pathname);
+                            const Icon = route.icon;
 
-                        return (
-                            <TouchableOpacity
-                                key={route.name}
-                                style={styles.tabButton}
-                                onPress={() => router.push(route.path as any)}
-                                accessibilityRole="button"
-                                accessibilityLabel={route.label}
-                                accessibilityState={{ selected: isActive }}
-                            >
-                                <Icon
-                                    size={24}
-                                    color={isActive ? themeColors.tabBarActive : themeColors.tabBarInactive}
-                                />
-                                <Text style={[
-                                    styles.tabLabel,
-                                    { color: isActive ? themeColors.tabBarActive : themeColors.tabBarInactive }
-                                ]}>
-                                    {route.label}
-                                </Text>
-                                {isActive && (
-                                    <View style={[
-                                        styles.indicator,
-                                        { backgroundColor: themeColors.tabBarActive }
-                                    ]} />
-                                )}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-            </SafeAreaView>
-        </View>
+                            return (
+                                <TouchableOpacity
+                                    key={route.name}
+                                    style={styles.tabButton}
+                                    onPress={() => router.push(route.path as any)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={route.label}
+                                    accessibilityState={{ selected: isActive }}
+                                >
+                                    <View style={styles.iconContainer}>
+                                        <Icon
+                                            size={24}
+                                            color={isActive ? themeColors.tabBarActive : themeColors.tabBarInactive}
+                                        />
+                                        {/* Mostrar badge de notificaciones si corresponde */}
+                                        {route.showBadge && (
+                                            <NotificationBadge size={16} />
+                                        )}
+                                    </View>
+                                    <Text style={[
+                                        styles.tabLabel,
+                                        { color: isActive ? themeColors.tabBarActive : themeColors.tabBarInactive }
+                                    ]}>
+                                        {route.label}
+                                    </Text>
+                                    {isActive && (
+                                        <View style={[
+                                            styles.indicator,
+                                            { backgroundColor: themeColors.tabBarActive }
+                                        ]} />
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </SafeAreaView>
+            </View>
+        </NotificationProvider>
     );
 };
 
@@ -126,6 +137,9 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        position: 'relative',
+    },
+    iconContainer: {
         position: 'relative',
     },
     tabLabel: {

@@ -150,7 +150,9 @@ export const useNotifications = () => {
         loadUnreadNotifications,
         markAsRead,
         markAllAsRead,
-        formatNotificationDate
+        formatNotificationDate,
+        setUnreadCount,  // Exportado para usarlo en el contexto de WebSocket
+        clearError: () => setError(null)
     };
 };
 

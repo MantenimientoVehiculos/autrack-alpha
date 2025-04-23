@@ -5,9 +5,10 @@ import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { Button } from '@/src/shared/components/ui/Button';
-import { useNotifications } from '../hooks/useNotifications';
+import { useNotificationContext } from '../context/NotificationProvider';
 import NotificationItem from '../components/NotificationItem';
 import { Notification } from '../models/notification';
+import { WebSocketIndicator } from '../components/WebSocketIndicator';
 
 export const NotificationsScreen: React.FC = () => {
     const router = useRouter();
@@ -21,8 +22,9 @@ export const NotificationsScreen: React.FC = () => {
         loadUnreadNotifications,
         markAsRead,
         markAllAsRead,
-        formatNotificationDate
-    } = useNotifications();
+        formatNotificationDate,
+        wsConnected
+    } = useNotificationContext();
 
     const [refreshing, setRefreshing] = useState(false);
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
@@ -123,6 +125,11 @@ export const NotificationsScreen: React.FC = () => {
     // Renderizar encabezado con filtros
     const renderHeader = () => (
         <View style={styles.headerContainer}>
+            {/* Indicador de estado WebSocket */}
+            <View style={styles.wsIndicatorContainer}>
+                <WebSocketIndicator />
+            </View>
+
             <View style={styles.filterContainer}>
                 <TouchableOpacity
                     style={[
@@ -207,7 +214,13 @@ export const NotificationsScreen: React.FC = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
-            <GradientHeader title="Notificaciones" showBackButton={false} />
+            <GradientHeader
+                title="Notificaciones"
+                showBackButton={false}
+                rightComponent={
+                    <WebSocketIndicator size={8} showLabel={false} />
+                }
+            />
 
             <FlatList
                 data={notifications}
@@ -242,6 +255,10 @@ const styles = StyleSheet.create({
     headerContainer: {
         padding: 16,
         paddingBottom: 8,
+    },
+    wsIndicatorContainer: {
+        alignItems: 'flex-end',
+        marginBottom: 8,
     },
     filterContainer: {
         flexDirection: 'row',
