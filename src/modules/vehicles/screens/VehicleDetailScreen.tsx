@@ -1,14 +1,16 @@
 // src/modules/vehicles/screens/VehicleDetailScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { Button } from '@/src/shared/components/ui/Button';
 import { Card } from '@/src/shared/components/ui/Card';
-import { EditIcon, TrashIcon, CarIcon } from '@/src/shared/components/ui/Icons';
+import { EditIcon, TrashIcon, CarIcon, ChevronRight } from '@/src/shared/components/ui/Icons';
 import { useVehicles } from '../hooks/useVehicles';
 import { Vehicle } from '../models/vehicle';
+import { useMaintenance } from '@/src/modules/maintenance/hooks/useMaintenance';
+import { MaintenanceRecord } from '@/src/modules/maintenance/models/maintenance';
 
 export const VehicleDetailScreen: React.FC = () => {
     const router = useRouter();
@@ -19,14 +21,21 @@ export const VehicleDetailScreen: React.FC = () => {
         loadVehicles,
         deleteVehicle,
         updateVehicle,
-        isLoading
+        isLoading: vehiclesLoading
     } = useVehicles();
 
-    const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-
     const vehicleId = params.id ? parseInt(params.id) : 0;
+    const {
+        maintenanceRecords,
+        loadMaintenanceRecords,
+        isLoading: maintenanceLoading
+    } = useMaintenance(vehicleId);
 
-    // Cargar el vehículo al montar el componente
+    const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+    const [recentMaintenances, setRecentMaintenances] = useState<MaintenanceRecord[]>([]);
+    const isLoading = vehiclesLoading || maintenanceLoading;
+
+    // Cargar el vehículo y mantenimientos al montar el componente
     useEffect(() => {
         if (vehicleId) {
             const foundVehicle = vehicles.find(v => v.id_vehiculo === vehicleId);
@@ -35,8 +44,11 @@ export const VehicleDetailScreen: React.FC = () => {
             } else {
                 loadVehicles();
             }
+
+            // Cargar los mantenimientos del vehículo
+            loadMaintenanceRecords(vehicleId);
         }
-    }, [vehicleId, vehicles, loadVehicles]);
+    }, [vehicleId, vehicles, loadVehicles, loadMaintenanceRecords]);
 
     // Actualizar el vehículo cuando cambia la lista de vehículos
     useEffect(() => {
@@ -47,6 +59,20 @@ export const VehicleDetailScreen: React.FC = () => {
             }
         }
     }, [vehicleId, vehicles]);
+
+    // Actualizar la lista de mantenimientos recientes
+    useEffect(() => {
+        if (maintenanceRecords.length > 0) {
+            // Ordenar por fecha (más reciente primero)
+            const sorted = [...maintenanceRecords].sort((a, b) =>
+                new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+            );
+            // Tomar solo los 3 más recientes
+            setRecentMaintenances(sorted.slice(0, 3));
+        } else {
+            setRecentMaintenances([]);
+        }
+    }, [maintenanceRecords]);
 
     // Manejar la eliminación del vehículo
     const handleDelete = () => {
@@ -116,8 +142,26 @@ export const VehicleDetailScreen: React.FC = () => {
         router.push(`/vehicles/${vehicleId}/edit`);
     };
 
+    // Navegar al historial completo de mantenimientos
+    const navigateToMaintenanceHistory = () => {
+        router.push(`/maintenance/history?vehicleId=${vehicleId}`);
+    };
+
+    // Navegar a la pantalla para añadir un nuevo mantenimiento
+    const navigateToAddMaintenance = () => {
+        router.push(`/maintenance/add?vehicleId=${vehicleId}`);
+    };
+
+    // Formatear fecha para mostrar
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    };
+
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
+    const cardColor = theme === 'dark' ? '#222222' : '#FFFFFF';
+    const borderColor = theme === 'dark' ? '#333333' : '#EEEEEE';
 
     // Mostrar cargando
     if (isLoading) {
@@ -274,11 +318,72 @@ export const VehicleDetailScreen: React.FC = () => {
                     </View>
                 </Card>
 
+                {/* Sección de últimos mantenimientos */}
+                <Card style={styles.maintenanceCard}>
+                    <View style={styles.maintenanceHeader}>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>
+                            Últimos Mantenimientos
+                        </Text>
+
+                        <TouchableOpacity onPress={navigateToMaintenanceHistory}>
+                            <Text style={[styles.viewAllText, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
+                                Ver todos
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {recentMaintenances.length > 0 ? (
+                        <>
+                            {recentMaintenances.map((maintenance) => (
+                                <View
+                                    key={maintenance.id_registro}
+                                    style={[
+                                        styles.maintenanceItem,
+                                        { borderColor: borderColor }
+                                    ]}
+                                >
+                                    <View style={styles.maintenanceItemHeader}>
+                                        <Text style={[styles.maintenanceType, { color: textColor }]}>
+                                            {maintenance.tipo_mantenimiento?.nombre || 'Mantenimiento'}
+                                        </Text>
+                                        <Text style={[styles.maintenanceCost, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
+                                            ${Number(maintenance.costo).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.maintenanceItemDetails}>
+                                        <Text style={[styles.dateText, { color: secondaryTextColor }]}>
+                                            {formatDate(maintenance.fecha)}
+                                        </Text>
+                                        <Text style={[styles.kmText, { color: secondaryTextColor }]}>
+                                            {maintenance.kilometraje.toLocaleString()} km
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </>
+                    ) : (
+                        <View style={styles.emptyStateContainer}>
+                            <Text style={[styles.emptyStateText, { color: secondaryTextColor }]}>
+                                No hay registros de mantenimiento
+                            </Text>
+                        </View>
+                    )}
+
+                    <Button
+                        buttonVariant="outline"
+                        buttonSize="medium"
+                        onPress={navigateToAddMaintenance}
+                        style={styles.addMaintenanceButton}
+                    >
+                        Registrar Mantenimiento
+                    </Button>
+                </Card>
+
                 {/* Acciones */}
                 <View style={styles.actionsContainer}>
                     <Button
                         buttonVariant="primary"
-                        buttonSize="large"
+                        buttonSize="medium"
                         onPress={handleUpdateKilometrage}
                         style={styles.updateKmButton}
                     >
@@ -287,20 +392,11 @@ export const VehicleDetailScreen: React.FC = () => {
 
                     <Button
                         buttonVariant="outline"
-                        buttonSize="large"
+                        buttonSize="medium"
                         onPress={navigateToEdit}
                         style={styles.editButton}
                     >
                         Editar Vehículo
-                    </Button>
-
-                    <Button
-                        buttonVariant="outline"
-                        buttonSize="large"
-                        onPress={() => router.push(`/maintenance/add?vehicleId=${vehicleId}`)}
-                        style={styles.addMaintenanceButton}
-                    >
-                        Registrar Mantenimiento
                     </Button>
                 </View>
             </ScrollView>
@@ -426,6 +522,59 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(0, 0, 0, 0.1)',
     },
+    maintenanceCard: {
+        padding: 16,
+        marginBottom: 24,
+    },
+    maintenanceHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    viewAllText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    maintenanceItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+        marginBottom: 8,
+    },
+    maintenanceItemHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    maintenanceType: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    maintenanceCost: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    maintenanceItemDetails: {
+        flexDirection: 'row',
+    },
+    dateText: {
+        fontSize: 14,
+        marginRight: 12,
+    },
+    kmText: {
+        fontSize: 14,
+    },
+    emptyStateContainer: {
+        padding: 16,
+        alignItems: 'center',
+    },
+    emptyStateText: {
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    addMaintenanceButton: {
+        marginTop: 16,
+    },
     actionsContainer: {
         gap: 4,
     },
@@ -433,9 +582,6 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     editButton: {
-        marginBottom: 8,
-    },
-    addMaintenanceButton: {
         marginBottom: 8,
     },
 });

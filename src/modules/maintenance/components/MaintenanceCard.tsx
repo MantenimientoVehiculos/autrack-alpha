@@ -62,7 +62,7 @@ export const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
                         {tipo_mantenimiento?.nombre || 'Mantenimiento'}
                     </Text>
                     <Text style={[styles.costText, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
-                        ${costo.toFixed(2)}
+                        ${Number(costo).toFixed(2)}
                     </Text>
                 </View>
 

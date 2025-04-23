@@ -1,8 +1,9 @@
 // src/shared/components/ui/GradientHeader.tsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft } from './Icons';
 import { useAppTheme } from '../../theme/ThemeProvider';
 
@@ -27,6 +28,10 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
         theme === 'dark' ? '#222222' : '#774A2F',
     ]) as [string, string, ...string[]];
 
+    // Función para manejar el botón de retroceso
+    const handleBackPress = () => {
+        router.back();
+    };
 
     return (
         <>
@@ -35,36 +40,39 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
                 colors={headerGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.headerContainer}
+                style={styles.gradientContainer}
             >
-                <View style={styles.headerContent}>
-                    {showBackButton && (
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={() => router.back()}
-                            accessibilityLabel="Botón atrás"
-                            accessibilityRole="button"
-                        >
-                            <ChevronLeft size={24} color="#FFFFFF" />
-                        </TouchableOpacity>
-                    )}
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    <View style={styles.headerContent}>
+                        {showBackButton && (
+                            <TouchableOpacity
+                                style={styles.backButton}
+                                onPress={handleBackPress}
+                                accessibilityLabel="Botón atrás"
+                                accessibilityRole="button"
+                            >
+                                <ChevronLeft size={24} color="#FFFFFF" />
+                            </TouchableOpacity>
+                        )}
 
-                    <Text style={styles.headerTitle}>{title}</Text>
+                        <Text style={styles.headerTitle}>{title}</Text>
 
-                    {rightComponent && (
-                        <View style={styles.rightComponent}>
-                            {rightComponent}
-                        </View>
-                    )}
-                </View>
+                        {rightComponent ? (
+                            <View style={styles.rightComponent}>
+                                {rightComponent}
+                            </View>
+                        ) : (
+                            <View style={styles.placeholderRight} />
+                        )}
+                    </View>
+                </SafeAreaView>
             </LinearGradient>
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    headerContainer: {
-        height: 56,
+    gradientContainer: {
         width: '100%',
         borderBottomLeftRadius: 16,
         borderBottomRightRadius: 16,
@@ -73,12 +81,18 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
+        // iOS shadow (for the bottom radius)
+        zIndex: 10,
+    },
+    safeArea: {
+        width: '100%',
     },
     headerContent: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
+        height: 56,
+        paddingBottom: 8,
     },
     backButton: {
         padding: 8,
@@ -93,6 +107,9 @@ const styles = StyleSheet.create({
     },
     rightComponent: {
         marginLeft: 'auto',
+    },
+    placeholderRight: {
+        width: 40, // Aproximadamente el ancho del botón de retroceso
     },
 });
 

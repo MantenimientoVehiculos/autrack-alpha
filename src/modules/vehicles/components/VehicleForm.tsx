@@ -72,9 +72,10 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     const [selectedModelId, setSelectedModelId] = useState<number | null>(initialData?.id_modelo || null);
     const [selectedColor, setSelectedColor] = useState<string>(initialData?.color || '');
     const [formError, setFormError] = useState<string | null>(null);
+    const [isFormInitialized, setIsFormInitialized] = useState(false);
 
     // Configurar React Hook Form con Zod
-    const { control, handleSubmit, formState: { errors } } = useForm<VehicleFormData>({
+    const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<VehicleFormData>({
         resolver: zodResolver(vehicleSchema),
         defaultValues: {
             placa: initialData?.placa || '',
@@ -82,6 +83,30 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
             kilometraje_actual: initialData?.kilometraje_actual ? initialData.kilometraje_actual.toString() : '',
         }
     });
+
+    // Inicializar el formulario con datos iniciales cuando cambian
+    useEffect(() => {
+        if (initialData && !isFormInitialized) {
+            // Actualizar los campos de React Hook Form
+            reset({
+                placa: initialData.placa || '',
+                anio: initialData.anio ? initialData.anio.toString() : '',
+                kilometraje_actual: initialData.kilometraje_actual ? initialData.kilometraje_actual.toString() : '',
+            });
+
+            // Actualizar estados adicionales
+            setSelectedBrandId(initialData.id_marca || null);
+            setSelectedModelId(initialData.id_modelo || null);
+            setSelectedColor(initialData.color || '');
+
+            // Cargar modelos si hay una marca seleccionada
+            if (initialData.id_marca) {
+                loadModelsByBrand(initialData.id_marca);
+            }
+
+            setIsFormInitialized(true);
+        }
+    }, [initialData, reset, loadModelsByBrand, isFormInitialized]);
 
     // Cargar modelos cuando cambia la marca seleccionada
     const handleSelectBrand = async (brandId: number) => {
@@ -145,6 +170,12 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
         };
 
         onSubmit(vehicleData);
+    };
+
+    // Cancelar y volver atrás
+    const handleCancel = () => {
+        // Aquí podrías implementar la navegación hacia atrás
+        // Por ejemplo: router.back();
     };
 
     // Colores según el tema
@@ -252,7 +283,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                     buttonVariant="outline"
                     buttonSize="small"
                     style={styles.cancelButton}
-                    onPress={() => { }} // Puedes implementar la cancelación más adelante
+                    onPress={handleCancel}
                 >
                     Cancelar
                 </Button>

@@ -1,6 +1,6 @@
 // src/modules/vehicles/screens/VehicleFormScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, ActivityIndicator, Text } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
@@ -22,31 +22,61 @@ export const VehicleFormScreen: React.FC = () => {
 
     const vehicleId = params.id ? parseInt(params.id) : undefined;
     const [initialData, setInitialData] = useState<Vehicle | undefined>(undefined);
+    const [isDataLoaded, setIsDataLoaded] = useState<boolean>(false);
     const isEditMode = !!vehicleId;
 
     // Cargar datos del vehículo para edición
     useEffect(() => {
-        if (isEditMode) {
+        const loadInitialData = async () => {
+            if (isEditMode) {
+                // Intentar encontrar el vehículo en el estado actual
+                const vehicle = vehicles.find(v => v.id_vehiculo === vehicleId);
+
+                if (vehicle) {
+                    setInitialData(vehicle);
+                    setIsDataLoaded(true);
+                } else {
+                    // Si no lo encuentra, cargar todos los vehículos
+                    await loadVehicles();
+
+                    // Después de cargar, intentar encontrar el vehículo nuevamente
+                    const refreshedVehicle = vehicles.find(v => v.id_vehiculo === vehicleId);
+                    if (refreshedVehicle) {
+                        setInitialData(refreshedVehicle);
+                    }
+                    setIsDataLoaded(true);
+                }
+            } else {
+                // Si no es modo edición, no hay datos iniciales que cargar
+                setIsDataLoaded(true);
+            }
+        };
+
+        loadInitialData();
+    }, [isEditMode, vehicleId, vehicles, loadVehicles]);
+
+    // Actualizar datos iniciales cuando cambia la lista de vehículos
+    useEffect(() => {
+        if (isEditMode && vehicles.length > 0) {
             const vehicle = vehicles.find(v => v.id_vehiculo === vehicleId);
             if (vehicle) {
                 setInitialData(vehicle);
-            } else {
-                // Si no se encuentra el vehículo, cargar todos los vehículos
-                loadVehicles();
+                setIsDataLoaded(true);
             }
         }
-    }, [isEditMode, vehicleId, vehicles, loadVehicles]);
+    }, [isEditMode, vehicleId, vehicles]);
 
     // Manejar envío del formulario
     const handleSubmit = async (data: Vehicle) => {
+        const { id_vehiculo, ...rest } = data; // Desestructurar para evitar enviar idVehiculo al crear un nuevo vehículo
         let result;
-        const { color, ...vehiculo } = data; // Desestructurar para evitar conflictos con el ID
+
         if (isEditMode && vehicleId) {
-            // Actualizar vehículo existente
-            result = await updateVehicle(vehicleId, vehiculo);
+            // Para actualizar, aseguramos mantener el id_vehiculo y enviar los datos actualizados
+            result = await updateVehicle(vehicleId, rest);
         } else {
-            // Crear nuevo vehículo
-            result = await createVehicle(vehiculo);
+            // Para crear, enviamos los datos completos
+            result = await createVehicle(rest);
         }
 
         if (result.success) {
@@ -70,6 +100,24 @@ export const VehicleFormScreen: React.FC = () => {
         }
     };
 
+    // Mostrar pantalla de carga mientras se obtienen los datos iniciales
+    if ((isEditMode && !isDataLoaded) || (isEditMode && isLoading)) {
+        return (
+            <View style={[styles.container, { backgroundColor: theme === 'dark' ? '#111111' : '#FFFFFF' }]}>
+                <GradientHeader
+                    title={isEditMode ? 'Editar Vehículo' : 'Registrar Vehículo'}
+                    showBackButton={true}
+                />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={theme === 'dark' ? '#B27046' : '#9D7E68'} />
+                    <Text style={{ color: theme === 'dark' ? '#F9F9F9' : '#313131', marginTop: 16 }}>
+                        Cargando datos del vehículo...
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <View style={[styles.container, { backgroundColor: theme === 'dark' ? '#111111' : '#FFFFFF' }]}>
             <GradientHeader
@@ -89,6 +137,12 @@ export const VehicleFormScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
     },
 });
 

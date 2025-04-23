@@ -29,7 +29,7 @@ class VehicleApi {
         id: number,
         vehicleData: Partial<Vehicle>
     ): Promise<Vehicle> {
-        return apiClient.put<Vehicle>(`/vehicles/${id}`, vehicleData);
+        return apiClient.patch<Vehicle>(`/vehicles/${id}`, vehicleData);
     }
 
     // Actualizar el kilometraje de un vehículo
