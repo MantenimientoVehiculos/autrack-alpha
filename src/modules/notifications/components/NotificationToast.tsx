@@ -1,5 +1,5 @@
 // src/modules/notifications/components/NotificationToast.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
 import { useNotificationContext } from '../context/NotificationProvider';
 import { useRouter } from 'expo-router';
@@ -15,47 +15,92 @@ export const NotificationToast: React.FC = () => {
     const router = useRouter();
     const { theme } = useAppTheme();
 
-    const [visible, setVisible] = useState(false);
-    const translateY = new Animated.Value(-TOAST_HEIGHT - 20);
-    const opacity = new Animated.Value(0);
+    // Refs para evitar actualizaciones de estado innecesarias
+    const visibleRef = useRef(false);
+    const processingRef = useRef(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastNotificationIdRef = useRef<number | null>(null);
 
-    // Mostrar toast cuando llega una nueva notificación no leída
+    // Estados animados
+    const translateY = useRef(new Animated.Value(-TOAST_HEIGHT - 20)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
+
+    // Estado para controlar el renderizado condicional
+    const [shouldRender, setShouldRender] = useState(false);
+
+    // Mostrar toast cuando llega una nueva notificación
     useEffect(() => {
-        if (latestNotification && !latestNotification.leida) {
-            // Vibrar para alertar al usuario
-            Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
-            );
+        // Si no hay notificación, ya estamos procesando, o es la misma notificación ya mostrada, no hacer nada
+        if (!latestNotification ||
+            processingRef.current ||
+            latestNotification.id_notificacion === lastNotificationIdRef.current ||
+            latestNotification.leida) {
+            return;
+        }
 
-            // Mostrar toast
-            setVisible(true);
+        // Marcar como en procesamiento y guardar el ID
+        processingRef.current = true;
+        lastNotificationIdRef.current = latestNotification.id_notificacion;
 
-            // Animar entrada
-            Animated.parallel([
-                Animated.timing(translateY, {
-                    toValue: Platform.OS === 'ios' ? 50 : 10, // Ajustar para iOS notch
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(opacity, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-            ]).start();
+        // Vibrar para alertar al usuario (solo una vez)
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+            .catch(error => console.error("Haptics error:", error));
 
-            // Configurar temporizador para ocultar automáticamente
-            const timer = setTimeout(() => {
+        // Limpiar timeout anterior si existe
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+
+        // Hacer visible el toast
+        setShouldRender(true);
+        visibleRef.current = true;
+
+        // Animar entrada
+        Animated.parallel([
+            Animated.timing(translateY, {
+                toValue: Platform.OS === 'ios' ? 50 : 10,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(opacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            // Configurar temporizador para ocultarlo automáticamente
+            timeoutRef.current = setTimeout(() => {
                 hideToast();
             }, TOAST_DURATION);
 
-            // Limpiar temporizador al desmontar
-            return () => clearTimeout(timer);
-        }
+            // Liberar flag de procesamiento
+            processingRef.current = false;
+        });
+
+        // Limpiar al desmontar
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        };
     }, [latestNotification]);
 
     // Ocultar toast con animación
     const hideToast = () => {
+        if (!visibleRef.current) return;
+
+        // Evitar múltiples animaciones
+        visibleRef.current = false;
+
+        // Limpiar timeout si existe
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+
+        // Animar salida
         Animated.parallel([
             Animated.timing(translateY, {
                 toValue: -TOAST_HEIGHT - 20,
@@ -68,26 +113,33 @@ export const NotificationToast: React.FC = () => {
                 useNativeDriver: true,
             }),
         ]).start(() => {
-            setVisible(false);
+            setShouldRender(false);
         });
     };
 
     // Manejar toque en la notificación
-    const handlePress = () => {
-        // Marcar como leída
+    const handlePress = async () => {
+        // Marcar como leída y ocultar primero antes de navegar
         if (latestNotification) {
-            markAsRead(latestNotification.id_notificacion);
+            try {
+                await markAsRead(latestNotification.id_notificacion);
+            } catch (error) {
+                console.error("Error marking notification as read:", error);
+            }
         }
 
         // Ocultar toast
         hideToast();
 
-        // Navegar a la pantalla de notificaciones
-        router.push('/notifications');
+        // Pequeño retraso para la animación antes de navegar
+        setTimeout(() => {
+            // Navegar a la pantalla de notificaciones
+            router.push('/notifications/index');
+        }, 300);
     };
 
-    // Si no hay notificación o no es visible, no renderizar nada
-    if (!latestNotification || !visible) {
+    // Si no hay notificación o no se debe renderizar, no mostrar nada
+    if (!latestNotification || !shouldRender) {
         return null;
     }
 
