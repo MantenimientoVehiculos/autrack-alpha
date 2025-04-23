@@ -7,7 +7,7 @@ import { useTheme } from 'react-native-paper';
 // Extender las props del botón para nuestras necesidades
 export interface CustomButtonProps {
     buttonVariant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-    buttonSize?: 'small' | 'medium' | 'large';
+    buttonSize?: 'small' | 'medium' | 'large' | 'noPadding';
     isLoading?: boolean;
     children: React.ReactNode;
     disabled?: boolean;
@@ -62,21 +62,27 @@ export const Button: React.FC<CustomButtonProps> = ({
         switch (buttonSize) {
             case 'small':
                 return {
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    fontSize: 14,
+                    paddingHorizontal: 4,
+                    paddingVertical: 2,
+                    fontSize: 12,
                 };
             case 'medium':
                 return {
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    fontSize: 16,
+                    paddingHorizontal: 14,
+                    paddingVertical: 6,
+                    fontSize: 14,
                 };
             case 'large':
                 return {
-                    paddingHorizontal: 24,
-                    paddingVertical: 12,
-                    fontSize: 18,
+                    paddingHorizontal: 22,
+                    paddingVertical: 10,
+                    fontSize: 16,
+                };
+            case 'noPadding':
+                return {
+                    paddingHorizontal: 0,
+                    paddingVertical: 0,
+                    fontSize: 14,
                 };
             default:
                 return {};

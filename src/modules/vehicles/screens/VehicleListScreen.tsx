@@ -92,6 +92,7 @@ export const VehicleListScreen: React.FC = () => {
                 buttonVariant="primary"
                 style={styles.fab}
                 onPress={navigateToAddVehicle}
+                buttonSize='noPadding'
             >
                 <PlusIcon size={24} color="#FFFFFF" />
             </Button>
@@ -190,8 +191,7 @@ const styles = StyleSheet.create({
         zIndex: 999,
     },
     fab: {
-        width: 56,
-        height: 56,
+        padding: 0,
         borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',

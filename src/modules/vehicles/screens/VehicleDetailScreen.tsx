@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(0, 0, 0, 0.1)',
     },
     actionsContainer: {
-        gap: 12,
+        gap: 4,
     },
     updateKmButton: {
         marginBottom: 8,
