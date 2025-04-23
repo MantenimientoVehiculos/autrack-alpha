@@ -44,3 +44,7 @@ export const TrashIcon = ({ size = 24, color = '#000000' }: IconProps) => (
 export const EditIcon = ({ size = 24, color = '#000000' }: IconProps) => (
     <Feather name="edit-2" size={size} color={color} />
 );
+
+export const BellIcon = ({ size = 24, color = '#000000' }: IconProps) => (
+    <Ionicons name="notifications-outline" size={size} color={color} />
+);

@@ -2,12 +2,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import { HomeIcon, CarIcon, BarChartIcon, SettingsIcon } from './Icons';
+import { HomeIcon, CarIcon, BarChartIcon, SettingsIcon, BellIcon } from './Icons';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import NotificationBadge from './NotificationBadge';
 import { NotificationProvider } from '@/src/modules/notifications/context/NotificationProvider';
 
-// Definición de rutas con patrones para identificar pantallas hijas
 const routes = [
     {
         name: 'home',
@@ -26,10 +25,17 @@ const routes = [
         pattern: /^\/vehicles($|\/)/
     },
     {
+        name: 'reports',
+        path: '/reports',
+        label: 'Reportes',
+        icon: BarChartIcon,
+        pattern: /^\/reports($|\/)/
+    },
+    {
         name: 'notifications',
         path: '/notifications',
         label: 'Notificaciones',
-        icon: BarChartIcon,
+        icon: BellIcon, // Asumiendo que tienes un componente BellIcon
         pattern: /^\/notifications($|\/)/,
         showBadge: true
     },
@@ -41,7 +47,6 @@ const routes = [
         pattern: /^\/settings($|\/)/
     }
 ];
-
 // Altura base del navbar
 const BASE_NAVBAR_HEIGHT = 65;
 
