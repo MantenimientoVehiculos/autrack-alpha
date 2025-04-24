@@ -22,5 +22,5 @@ export default function Home() {
   }
 
   // Si está autenticado, redireccionar a la lista de vehículos
-  return <Redirect href="/vehicles" />;
+  return <Redirect href="/(app)/(navbar)/home" />;
 }

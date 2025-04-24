@@ -14,7 +14,7 @@ const routes = [
         label: 'Inicio',
         icon: HomeIcon,
         // Patrón para identificar cuando esta ruta está activa
-        pattern: /^\/$/
+        pattern: /^\/home($|\/)/
     },
     {
         name: 'vehicles',
