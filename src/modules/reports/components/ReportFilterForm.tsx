@@ -1,4 +1,3 @@
-// src/modules/reports/components/ReportFilterForm.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
@@ -54,23 +53,40 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
 
     // Actualizar valores cuando cambian los rangos
     useEffect(() => {
+        const updates: Partial<ReportFilter> = {};
+
         if (dateRange) {
-            updateFilter('fecha_inicio', dateRange.min);
-            updateFilter('fecha_fin', dateRange.max);
+            updates.fecha_inicio = dateRange.min;
+            updates.fecha_fin = dateRange.max;
         }
 
         if (kmRange) {
-            updateFilter('kilometraje_minimo', kmRange.min);
-            updateFilter('kilometraje_maximo', kmRange.max);
+            updates.kilometraje_minimo = kmRange.min;
+            updates.kilometraje_maximo = kmRange.max;
+        }
+
+        if (Object.keys(updates).length > 0) {
+            setFilter(prev => ({
+                ...prev,
+                ...updates
+            }));
         }
     }, [dateRange, kmRange]);
 
     // Actualizar valores iniciales cuando cambian
     useEffect(() => {
         if (initialValues) {
+            // Conservar solo los valores definidos para no sobrescribir todo
+            const definedValues: Partial<ReportFilter> = {};
+            Object.entries(initialValues).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    definedValues[key as keyof ReportFilter] = value as any;
+                }
+            });
+
             setFilter(prev => ({
                 ...prev,
-                ...initialValues
+                ...definedValues
             }));
         }
     }, [initialValues]);
@@ -121,7 +137,38 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
     // Manejar envío del formulario
     const handleSubmit = () => {
         if (validateForm()) {
-            onSubmit(filter);
+            // Clonar el objeto filter para evitar referencias
+            const filterToSubmit = { ...filter };
+
+            // Eliminar campos vacíos o indefinidos para optimizar la petición
+            const cleanFilter: Partial<ReportFilter> = {};
+
+            // Solo incluir campos con valores válidos
+            Object.entries(filterToSubmit).forEach(([key, value]) => {
+                // Verificar que el valor no sea null, undefined, string vacío o array vacío
+                if (value !== null && value !== undefined) {
+                    const typedKey = key as keyof ReportFilter;
+                    if (Array.isArray(value)) {
+                        if (value.length > 0) {
+                            (cleanFilter[typedKey] as any) = value;
+                        }
+                    } else if (typeof value === 'string') {
+                        if (value.trim() !== '') {
+                            (cleanFilter[typedKey] as any) = value;
+                        }
+                    } else {
+                        (cleanFilter[typedKey] as any) = value;
+                    }
+                }
+            });
+
+            // Asegurarnos de que id_vehiculo siempre se incluya, incluso si es 0
+            if (cleanFilter.id_vehiculo === undefined) {
+                cleanFilter.id_vehiculo = filterToSubmit.id_vehiculo;
+            }
+
+            console.log("Enviando filtro limpio:", cleanFilter);
+            onSubmit(cleanFilter as ReportFilter);
         }
     };
 
@@ -137,6 +184,11 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
     const bgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
     const borderColor = theme === 'dark' ? '#444444' : '#DDDDDD';
 
+    // Debug
+    useEffect(() => {
+        console.log("Current filter state:", filter);
+    }, [filter]);
+
     return (
         <View style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
@@ -149,17 +201,15 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                         { borderColor: errors.id_vehiculo ? '#CF6679' : borderColor, backgroundColor: bgColor }
                     ]}>
                         {vehicles.map(vehicle => (
-                            <>
-                                <Button
-                                    key={vehicle.id_vehiculo}
-                                    buttonVariant={filter.id_vehiculo === vehicle.id_vehiculo ? 'primary' : 'outline'}
-                                    buttonSize="medium"
-                                    onPress={() => updateFilter('id_vehiculo', vehicle.id_vehiculo)}
-                                    style={styles.vehicleOption}
-                                >
-                                    {vehicle.marca?.nombre} {vehicle.modelo?.nombre} ({vehicle.placa})
-                                </Button>
-                            </>
+                            <Button
+                                key={vehicle.id_vehiculo}
+                                buttonVariant={filter.id_vehiculo === vehicle.id_vehiculo ? 'primary' : 'outline'}
+                                buttonSize="medium"
+                                onPress={() => updateFilter('id_vehiculo', vehicle.id_vehiculo)}
+                                style={styles.vehicleOption}
+                            >
+                                {vehicle.marca?.nombre} {vehicle.modelo?.nombre} ({vehicle.placa})
+                            </Button>
                         ))}
                     </View>
                     {errors.id_vehiculo && (

@@ -1,4 +1,3 @@
-// src/modules/reports/screens/ReportFiltersScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -7,7 +6,7 @@ import {
     ScrollView,
     Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
@@ -17,6 +16,7 @@ import { ReportFilter } from '../models/report';
 
 export const ReportFiltersScreen: React.FC = () => {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const { theme } = useAppTheme();
     const { vehicles, loadVehicles } = useVehicles();
     const {
@@ -37,12 +37,22 @@ export const ReportFiltersScreen: React.FC = () => {
     // Cargar vehículos al iniciar
     useEffect(() => {
         loadVehicles();
-        clearReport(); // Limpiar cualquier reporte anterior
-    }, [loadVehicles, clearReport]);
+
+        // No limpiar todo el reporte si tenemos un parámetro de vehículo
+        const vehicleId = params.vehicleId ? parseInt(params.vehicleId as string, 10) : 0;
+        if (vehicleId && vehicleId !== reportState.filter.id_vehiculo) {
+            // Si venimos con un ID de vehículo preseleccionado, cargar su información
+            loadVehicleInfo(vehicleId);
+        } else if (!vehicleId) {
+            // Solo limpiar si no hay un vehículo preseleccionado
+            clearReport();
+        }
+    }, [loadVehicles, clearReport, loadVehicleInfo, reportState.filter.id_vehiculo]);
 
     // Manejar generación de reporte
     const handleGenerateReport = async (filter: ReportFilter) => {
-        const result = await generateReport();
+        console.log("Generando reporte con filtros:", filter);
+        const result = await generateReport(filter); // Pasamos el filtro explícitamente
 
         if (result.success) {
             router.push('/reports/results');

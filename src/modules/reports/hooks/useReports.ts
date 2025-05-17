@@ -1,4 +1,3 @@
-// src/modules/reports/hooks/useReports.ts
 import { useState, useCallback, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Alert } from 'react-native';
@@ -86,16 +85,27 @@ export const useReports = () => {
         }
     }, [updateFilter]);
 
-    // Generar reporte
-    const generateReport = useCallback(async () => {
+    // Generar reporte - CORRECCIÓN: ahora toma el filtro actualizado como parámetro
+    const generateReport = useCallback(async (filter?: ReportFilter) => {
+        // Si se proporciona un filtro, actualizar el estado primero
+        if (filter) {
+            updateFilter(filter);
+        }
+
+        // Usar el filtro proporcionado o el estado actual
+        const filterToUse = filter || reportState.filter;
+
         setReportState(prev => ({
             ...prev,
             isGenerating: true,
-            error: null
+            error: null,
+            // Asegurarse de que el filtro actualizado esté guardado en el estado
+            filter: filterToUse
         }));
 
         try {
-            const result = await reportsApi.generateReport(reportState.filter);
+            // Usar filterToUse en lugar de reportState.filter
+            const result = await reportsApi.generateReport(filterToUse);
 
             setReportState(prev => ({
                 ...prev,
@@ -115,7 +125,7 @@ export const useReports = () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             return { success: false, error: err.message || 'Error al generar reporte' };
         }
-    }, [reportState.filter]);
+    }, [reportState.filter, updateFilter]);
 
     // Exportar reporte
     const exportReport = useCallback(async (format: 'pdf' | 'excel' | 'csv' = 'pdf') => {
