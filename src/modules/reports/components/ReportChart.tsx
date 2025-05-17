@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Card } from '@/src/shared/components/ui/Card';
 import { ReportByType } from '../models/report';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ReportChartProps {
     data: ReportByType[];
@@ -35,15 +34,13 @@ export const ReportChart: React.FC<ReportChartProps> = ({
         '#999999', // Gray
     ];
 
-    // Preparar datos para el gráfico
-    const chartData = data.map(item => ({
-        name: item.nombre,
-        value: item.costo_total,
-        count: item.cantidad
-    }));
+    // Calcular altura máxima para normalizar barras
+    const maxValue = data.length > 0
+        ? Math.max(...data.map(item => item.costo_total))
+        : 0;
 
-    // Formatear valores monetarios
-    const formatMoney = (value: number) => `$${value.toFixed(2)}`;
+    // Calcular suma total para porcentajes del gráfico de pastel
+    const total = data.reduce((sum, item) => sum + item.costo_total, 0);
 
     return (
         <Card style={styles.container}>
@@ -51,90 +48,106 @@ export const ReportChart: React.FC<ReportChartProps> = ({
 
             <View style={styles.chartContainer}>
                 {type === 'bar' ? (
-                    // Gráfico de barras con Recharts
-                    <View style={{ height: 300, width: screenWidth }}>
-                        <BarChart
-                            width={screenWidth}
-                            height={300}
-                            data={chartData}
-                            margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
-                        >
-                            <XAxis
-                                dataKey="name"
-                                angle={-45}
-                                textAnchor="end"
-                                height={60}
-                                tick={{ fill: textColor, fontSize: 12 }}
-                            />
-                            <YAxis
-                                tickFormatter={formatMoney}
-                                tick={{ fill: textColor, fontSize: 12 }}
-                            />
-                            <Tooltip
-                                formatter={(value) => [`${formatMoney(Number(value))}`, 'Costo total']}
-                                labelStyle={{ color: theme === 'dark' ? '#FFF' : '#333' }}
-                                contentStyle={{
-                                    backgroundColor: theme === 'dark' ? '#333' : '#FFF',
-                                    border: `1px solid ${theme === 'dark' ? '#444' : '#DDD'}`
-                                }}
-                            />
-                            <Bar
-                                dataKey="value"
-                                fill="#9D7E68"
-                                radius={[4, 4, 0, 0]}
-                            >
-                                {chartData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={COLORS[index % COLORS.length]}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
+                    // Gráfico de barras
+                    <View style={styles.barChart}>
+                        {data.map((item, index) => {
+                            const barHeight = maxValue > 0
+                                ? (item.costo_total / maxValue) * 200
+                                : 0;
+
+                            return (
+                                <View key={item.id} style={styles.barItemContainer}>
+                                    <Text
+                                        style={[styles.barValue, { color: textColor }]}
+                                        numberOfLines={1}
+                                    >
+                                        ${item.costo_total.toFixed(2)}
+                                    </Text>
+
+                                    <View style={styles.barWrapper}>
+                                        <View
+                                            style={[
+                                                styles.bar,
+                                                {
+                                                    height: barHeight,
+                                                    backgroundColor: COLORS[index % COLORS.length]
+                                                }
+                                            ]}
+                                        />
+                                    </View>
+
+                                    <Text
+                                        style={[styles.barLabel, { color: textColor }]}
+                                        numberOfLines={2}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {item.nombre}
+                                    </Text>
+                                </View>
+                            );
+                        })}
                     </View>
                 ) : (
-                    // Gráfico de pastel con Recharts
-                    <View style={{ height: 350, width: screenWidth }}>
-                        <PieChart
-                            width={screenWidth}
-                            height={300}
-                        >
-                            <Pie
-                                data={chartData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                outerRadius={90}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {chartData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={COLORS[index % COLORS.length]}
+                    // Gráfico de pastel
+                    <View style={styles.pieChartContainer}>
+                        <View style={styles.pieChart}>
+                            {data.map((item, index) => {
+                                const percentage = total > 0 ? (item.costo_total / total) * 100 : 0;
+                                // Simplificado para implementación básica - en una app real
+                                // usaríamos una librería de gráficos como Victory o react-native-charts
+                                const size = 30 + (percentage / 2);
+
+                                return (
+                                    <View
+                                        key={item.id}
+                                        style={[
+                                            styles.pieSlice,
+                                            {
+                                                width: size,
+                                                height: size,
+                                                backgroundColor: COLORS[index % COLORS.length],
+                                                position: 'absolute',
+                                                top: 70 - size / 2,
+                                                left: index % 2 === 0 ? 80 - size / 2 : 120 - size / 2,
+                                                borderRadius: size / 2,
+                                                zIndex: Math.round(percentage)
+                                            }
+                                        ]}
                                     />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                formatter={(value) => [`${formatMoney(Number(value))}`, 'Costo total']}
-                                labelStyle={{ color: theme === 'dark' ? '#FFF' : '#333' }}
-                                contentStyle={{
-                                    backgroundColor: theme === 'dark' ? '#333' : '#FFF',
-                                    border: `1px solid ${theme === 'dark' ? '#444' : '#DDD'}`
-                                }}
-                            />
-                            <Legend
-                                formatter={(value, entry, index) => (
-                                    <Text style={{ color: textColor }}>
-                                        {value} (${chartData[index].value.toFixed(2)})
-                                    </Text>
-                                )}
-                            />
-                        </PieChart>
+                                );
+                            })}
+                        </View>
+
+                        <View style={styles.pieLegend}>
+                            {data.map((item, index) => {
+                                const percentage = total > 0 ? (item.costo_total / total) * 100 : 0;
+
+                                return (
+                                    <View key={item.id} style={styles.legendItem}>
+                                        <View
+                                            style={[
+                                                styles.legendColor,
+                                                { backgroundColor: COLORS[index % COLORS.length] }
+                                            ]}
+                                        />
+                                        <Text
+                                            style={[styles.legendText, { color: textColor }]}
+                                            numberOfLines={1}
+                                            ellipsizeMode="middle"
+                                        >
+                                            {item.nombre} ({percentage.toFixed(1)}%)
+                                        </Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
                     </View>
                 )}
             </View>
+
+            <Text style={[styles.note, { color: theme === 'dark' ? '#BBBBBB' : '#666666' }]}>
+                Basado en costos totales por tipo de mantenimiento
+            </Text>
         </Card>
     );
 };
@@ -152,6 +165,78 @@ const styles = StyleSheet.create({
     chartContainer: {
         marginTop: 8,
         alignItems: 'center',
+    },
+    barChart: {
+        flexDirection: 'row',
+        height: 270,
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+    },
+    barItemContainer: {
+        flex: 1,
+        alignItems: 'center',
+        maxWidth: 80,
+    },
+    barValue: {
+        fontSize: 10,
+        marginBottom: 4,
+        height: 30,
+        textAlign: 'center',
+    },
+    barWrapper: {
+        height: 200,
+        width: '80%',
+        justifyContent: 'flex-end',
+    },
+    bar: {
+        width: '100%',
+        borderTopLeftRadius: 4,
+        borderTopRightRadius: 4,
+    },
+    barLabel: {
+        fontSize: 10,
+        textAlign: 'center',
+        marginTop: 6,
+        height: 30,
+    },
+    pieChartContainer: {
+        height: 250,
+        width: '100%',
+        alignItems: 'center',
+    },
+    pieChart: {
+        height: 140,
+        width: 200,
+        position: 'relative',
+        marginBottom: 16,
+    },
+    pieSlice: {
+        // Los estilos específicos se aplican inline
+    },
+    pieLegend: {
+        width: '100%',
+        paddingHorizontal: 16,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    legendColor: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        marginRight: 8,
+    },
+    legendText: {
+        fontSize: 12,
+    },
+    note: {
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: 16,
+        fontStyle: 'italic',
     }
 });
 

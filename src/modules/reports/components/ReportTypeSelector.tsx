@@ -59,11 +59,6 @@ export const ReportTypeSelector: React.FC<ReportTypeSelectorProps> = ({
         setLocalSelectedIds([]);
     };
 
-    // Confirmar selección
-    const handleConfirm = () => {
-        onConfirm(localSelectedIds);
-    };
-
     // Obtener colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const bgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
@@ -174,7 +169,7 @@ export const ReportTypeSelector: React.FC<ReportTypeSelectorProps> = ({
                         <Button
                             buttonVariant="primary"
                             buttonSize="large"
-                            onPress={handleConfirm}
+                            onPress={() => onConfirm(localSelectedIds)}
                             style={{ marginBottom: 8 }}
                         >
                             Confirmar ({localSelectedIds.length})

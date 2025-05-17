@@ -2,7 +2,7 @@
 import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 import storage from '../storage';
 
-export const API_BASE_URL = 'http://192.168.0.101:3000/api/v1';
+export const API_BASE_URL = 'http://192.168.0.102:3000/api/v1';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

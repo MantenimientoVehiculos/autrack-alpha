@@ -248,7 +248,7 @@ export const VehicleMaintenanceScreen: React.FC = () => {
                                             {record.tipo_mantenimiento?.nombre || "Mantenimiento"}
                                         </Text>
                                         <Text style={[styles.maintenanceCost, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
-                                            ${record.costo.toFixed(2)}
+                                            ${Number(record.costo).toFixed(2)}
                                         </Text>
                                     </View>
                                     <View style={styles.maintenanceItemDetails}>

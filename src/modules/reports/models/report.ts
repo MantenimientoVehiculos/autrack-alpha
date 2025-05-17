@@ -1,6 +1,5 @@
 // src/modules/reports/models/report.ts
-
-import { MaintenanceType, MaintenanceCategory } from '@/src/modules/maintenance/models/maintenance';
+import { Vehicle } from '@/src/modules/vehicles/models/vehicle';
 
 // Filtros para generar un reporte
 export interface ReportFilter {
@@ -77,3 +76,6 @@ export interface ReportState {
     isExporting: boolean;
     error: string | null;
 }
+
+// Índice de exportación
+export * from './report';

@@ -14,13 +14,10 @@ import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { Button } from '@/src/shared/components/ui/Button';
-import { Card } from '@/src/shared/components/ui/Card';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
 import { useReports } from '../hooks/useReports';
 import { ReportFilter } from '../models/report';
-import ReportForm from '../components/ReportForm';
-import ReportCard from '../components/ReportCard';
-import ReportChart from '../components/ReportChart';
+import { ReportFilterForm, ReportCard, ReportChart, ReportResults } from '../components';
 
 export const ReportsScreen: React.FC = () => {
     const router = useRouter();
@@ -39,7 +36,6 @@ export const ReportsScreen: React.FC = () => {
     } = useReports();
 
     const [activeStep, setActiveStep] = useState<'filter' | 'results'>('filter');
-    const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | 'csv'>('pdf');
 
     // Cargar vehículos al iniciar
     useEffect(() => {
@@ -66,17 +62,17 @@ export const ReportsScreen: React.FC = () => {
 
     // Manejar exportación de reporte
     const handleExportReport = async () => {
-        setExportFormat(reportState.filter.formato || 'pdf');
+        const formato = reportState.filter.formato || 'pdf';
 
         Alert.alert(
             'Exportar reporte',
-            `¿Deseas exportar el reporte en formato ${(reportState.filter.formato || 'PDF').toUpperCase()}?`,
+            `¿Deseas exportar el reporte en formato ${formato.toUpperCase()}?`,
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
                     text: 'Exportar',
                     onPress: async () => {
-                        const result = await exportReport(reportState.filter.formato);
+                        const result = await exportReport(formato);
 
                         if (result.success) {
                             Alert.alert(
@@ -159,7 +155,7 @@ export const ReportsScreen: React.FC = () => {
                     </Text>
 
                     {/* Formulario de filtros */}
-                    <ReportForm
+                    <ReportFilterForm
                         onSubmit={handleGenerateReport}
                         initialValues={reportState.filter}
                         dateRange={dateRange}
@@ -214,38 +210,10 @@ export const ReportsScreen: React.FC = () => {
                             )}
 
                             {/* Lista detallada de registros */}
-                            <Card style={styles.recordsCard}>
-                                <Text style={[styles.cardTitle, { color: textColor }]}>
-                                    Detalle de Registros ({reportState.result.registros.length})
-                                </Text>
-
-                                {reportState.result.registros.map(record => (
-                                    <View key={record.id_registro} style={styles.recordItem}>
-                                        <View style={styles.recordHeader}>
-                                            <Text style={[styles.recordType, { color: textColor }]}>
-                                                {record.tipo_mantenimiento.nombre}
-                                            </Text>
-                                            <Text style={[styles.recordCost, { color: theme === 'dark' ? '#B27046' : '#9D7E68' }]}>
-                                                ${record.costo.toFixed(2)}
-                                            </Text>
-                                        </View>
-
-                                        <View style={styles.recordDetail}>
-                                            <Text style={[styles.recordDate, { color: textColor }]}>
-                                                Fecha: {new Date(record.fecha).toLocaleDateString()}
-                                            </Text>
-                                            <Text style={[styles.recordKm, { color: textColor }]}>
-                                                Kilometraje: {record.kilometraje.toLocaleString()} km
-                                            </Text>
-                                            {record.notas && (
-                                                <Text style={[styles.recordNotes, { color: textColor }]}>
-                                                    Notas: {record.notas}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    </View>
-                                ))}
-                            </Card>
+                            <ReportResults
+                                records={reportState.result.registros}
+                                title="Detalle de Registros"
+                            />
 
                             {/* Botón para generar nuevo reporte */}
                             <Button
@@ -314,49 +282,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
-    },
-    recordsCard: {
-        padding: 16,
-        marginBottom: 16,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 16,
-    },
-    recordItem: {
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.1)',
-    },
-    recordHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 4,
-    },
-    recordType: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    recordCost: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    recordDetail: {
-        marginTop: 4,
-    },
-    recordDate: {
-        fontSize: 14,
-        marginBottom: 2,
-    },
-    recordKm: {
-        fontSize: 14,
-        marginBottom: 2,
-    },
-    recordNotes: {
-        fontSize: 14,
-        fontStyle: 'italic',
-        marginTop: 4,
     },
     loadingContainer: {
         alignItems: 'center',

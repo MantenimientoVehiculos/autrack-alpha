@@ -4,18 +4,21 @@ import {
     View,
     StyleSheet,
     Animated,
-    Dimensions,
-    Platform
+    Platform,
+    StatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/modules/auth/context/AuthContext';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import useHome from '../hooks/useHome';
 
-import AnimatedHeader from '../components/AnimatedHeader';
+// Importamos los componentes separados en lugar de AnimatedHeader
+import HeaderBackground from '../components/HeaderBackground';
+import HeaderContent from '../components/HeaderContent';
 import VehicleCarousel from '../components/VehicleCarousel';
 import MaintenanceList from '../components/MaintenanceList';
 import SectionHeader from '../components/SectionHeader';
+import ReportsSummaryWidget from '../../reports/components/ReportsSummaryWidget';
 
 // Obtener dimensiones de la pantalla
 const HEADER_MAX_HEIGHT = 200; // Altura máxima del header
@@ -63,20 +66,23 @@ const HomeScreen: React.FC = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
-            {/* Header animado con gradiente */}
-            <AnimatedHeader
-                scrollY={scrollY}
-                title="Autrack"
-                subtitle={`Hola, ${user?.nombre_completo?.split(' ')[0] || 'Usuario'}`}
-                unreadCount={unreadCount}
-                onNotificationPress={navigateToNotifications}
+            <StatusBar
+                translucent
+                backgroundColor="transparent"
+                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
             />
 
-            {/* Contenido principal con scroll */}
+            {/* Fondo del encabezado (gradiente) - Capa inferior (por debajo del ScrollView) */}
+            <HeaderBackground
+                scrollY={scrollY}
+                maxHeight={HEADER_MAX_HEIGHT}
+            />
+
+            {/* Contenido principal con scroll - Capa media */}
             <Animated.ScrollView
                 contentContainerStyle={[
                     styles.scrollViewContent,
-                    { paddingTop: HEADER_MAX_HEIGHT - 60 }
+                    { paddingTop: HEADER_MAX_HEIGHT - 40 }
                 ]}
                 scrollEventThrottle={16}
                 onScroll={Animated.event(
@@ -94,6 +100,11 @@ const HomeScreen: React.FC = () => {
                     />
                 </View>
 
+                {/* Widget de resumen de reportes */}
+                <View style={styles.section}>
+                    <ReportsSummaryWidget />
+                </View>
+
                 {/* Sección de Próximos Mantenimientos */}
                 <View style={styles.section}>
                     <SectionHeader
@@ -108,6 +119,16 @@ const HomeScreen: React.FC = () => {
                     />
                 </View>
             </Animated.ScrollView>
+
+            {/* Contenido del encabezado (texto y botones) - Capa superior (por encima de todo) */}
+            <HeaderContent
+                scrollY={scrollY}
+                title="Autrack"
+                subtitle={`Hola, ${user?.nombre_completo?.split(' ')[0] || 'Usuario'}`}
+                unreadCount={unreadCount}
+                onNotificationPress={navigateToNotifications}
+                maxHeight={HEADER_MAX_HEIGHT}
+            />
         </View>
     );
 };
@@ -115,6 +136,7 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        position: 'relative',
     },
     scrollViewContent: {
         paddingBottom: 20,

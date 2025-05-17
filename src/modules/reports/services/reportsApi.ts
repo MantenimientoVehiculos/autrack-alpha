@@ -35,4 +35,4 @@ class ReportsApi {
 }
 
 export const reportsApi = new ReportsApi();
-export default ReportsApi;
+export default reportsApi;

@@ -2,10 +2,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import { HomeIcon, CarIcon, BarChartIcon, SettingsIcon, BellIcon } from './Icons';
+import { HomeIcon, CarIcon, BarChartIcon, SettingsIcon } from './Icons';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
-import NotificationBadge from './NotificationBadge';
-import { NotificationProvider } from '@/src/modules/notifications/context/NotificationProvider';
 
 const routes = [
     {
@@ -13,7 +11,6 @@ const routes = [
         path: '/',
         label: 'Inicio',
         icon: HomeIcon,
-        // Patrón para identificar cuando esta ruta está activa
         pattern: /^\/home($|\/)/
     },
     {
@@ -21,7 +18,6 @@ const routes = [
         path: '/vehicles',
         label: 'Vehículos',
         icon: CarIcon,
-        // Patrón para identificar cuando cualquier subruta de vehículos está activa
         pattern: /^\/vehicles($|\/)/
     },
     {
@@ -32,14 +28,6 @@ const routes = [
         pattern: /^\/reports($|\/)/
     },
     {
-        name: 'notifications',
-        path: '/notifications',
-        label: 'Notificaciones',
-        icon: BellIcon, // Asumiendo que tienes un componente BellIcon
-        pattern: /^\/notifications($|\/)/,
-        showBadge: true
-    },
-    {
         name: 'settings',
         path: '/settings',
         label: 'Ajustes',
@@ -47,6 +35,7 @@ const routes = [
         pattern: /^\/settings($|\/)/
     }
 ];
+
 // Altura base del navbar
 const BASE_NAVBAR_HEIGHT = 65;
 
@@ -67,53 +56,47 @@ export const BottomNav: React.FC = () => {
     const themeColors = getThemeColors();
 
     return (
-        <NotificationProvider>
-            <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-                <SafeAreaView style={[styles.safeAreaContainer, { backgroundColor: themeColors.card }]}>
-                    <View style={[styles.navContent, { backgroundColor: themeColors.card }]}>
-                        {routes.map((route) => {
-                            // Comprobar si la ruta actual coincide con el patrón de esta pestaña
-                            const isActive = route.pattern.test(pathname);
-                            const Icon = route.icon;
+        <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+            <SafeAreaView style={[styles.safeAreaContainer, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.navContent, { backgroundColor: themeColors.card }]}>
+                    {routes.map((route) => {
+                        // Comprobar si la ruta actual coincide con el patrón de esta pestaña
+                        const isActive = route.pattern.test(pathname);
+                        const Icon = route.icon;
 
-                            return (
-                                <TouchableOpacity
-                                    key={route.name}
-                                    style={styles.tabButton}
-                                    onPress={() => router.push(route.path as any)}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={route.label}
-                                    accessibilityState={{ selected: isActive }}
-                                >
-                                    <View style={styles.iconContainer}>
-                                        <Icon
-                                            size={24}
-                                            color={isActive ? themeColors.tabBarActive : themeColors.tabBarInactive}
-                                        />
-                                        {/* Mostrar badge de notificaciones si corresponde */}
-                                        {route.showBadge && (
-                                            <NotificationBadge size={16} />
-                                        )}
-                                    </View>
-                                    <Text style={[
-                                        styles.tabLabel,
-                                        { color: isActive ? themeColors.tabBarActive : themeColors.tabBarInactive }
-                                    ]}>
-                                        {route.label}
-                                    </Text>
-                                    {isActive && (
-                                        <View style={[
-                                            styles.indicator,
-                                            { backgroundColor: themeColors.tabBarActive }
-                                        ]} />
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                </SafeAreaView>
-            </View>
-        </NotificationProvider>
+                        return (
+                            <TouchableOpacity
+                                key={route.name}
+                                style={styles.tabButton}
+                                onPress={() => router.push(route.path as any)}
+                                accessibilityRole="button"
+                                accessibilityLabel={route.label}
+                                accessibilityState={{ selected: isActive }}
+                            >
+                                <View style={styles.iconContainer}>
+                                    <Icon
+                                        size={24}
+                                        color={isActive ? themeColors.tabBarActive : themeColors.tabBarInactive}
+                                    />
+                                </View>
+                                <Text style={[
+                                    styles.tabLabel,
+                                    { color: isActive ? themeColors.tabBarActive : themeColors.tabBarInactive }
+                                ]}>
+                                    {route.label}
+                                </Text>
+                                {isActive && (
+                                    <View style={[
+                                        styles.indicator,
+                                        { backgroundColor: themeColors.tabBarActive }
+                                    ]} />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            </SafeAreaView>
+        </View>
     );
 };
 

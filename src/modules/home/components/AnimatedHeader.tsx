@@ -1,3 +1,4 @@
+// src/modules/home/components/AnimatedHeader.tsx
 import React from 'react';
 import {
     View,
@@ -90,8 +91,8 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 0,
-        elevation: 4,
+        zIndex: 10, // Aumentamos zIndex para asegurar que esté por encima
+        elevation: 5, // Aumentamos elevation para Android
         overflow: 'hidden',
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
@@ -124,6 +125,7 @@ const styles = StyleSheet.create({
         top: 16,
         right: 16,
         padding: 8,
+        zIndex: 15, // Aseguramos que el botón esté por encima
     },
 });
 

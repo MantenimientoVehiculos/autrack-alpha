@@ -1,5 +1,5 @@
 // src/modules/reports/hooks/useReports.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
 import { reportsApi } from '../services/reportsApi';
 import {
@@ -9,6 +9,7 @@ import {
     ExportReportResponse,
     ReportState
 } from '../models/report';
+import { Alert } from 'react-native';
 
 export const useReports = () => {
     // Estado para gestionar el reporte actual
@@ -39,7 +40,7 @@ export const useReports = () => {
 
     // Cargar información del vehículo seleccionado (rangos de fecha, km, tipos)
     const loadVehicleInfo = useCallback(async (vehicleId: number) => {
-        if (!vehicleId) return;
+        if (!vehicleId) return false;
 
         setReportState(prev => ({
             ...prev,
@@ -180,3 +181,5 @@ export const useReports = () => {
         clearError: () => setReportState(prev => ({ ...prev, error: null }))
     };
 };
+
+export default useReports;
