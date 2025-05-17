@@ -7,11 +7,11 @@ import {
     StyleSheet,
     TouchableOpacity,
     FlatList,
-    TextInput,
     SafeAreaView
 } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Button } from '@/src/shared/components/ui/Button';
+import { Input } from '@/src/shared/components/ui/Input';
 
 interface ReportTypeSelectorProps {
     types: { id: number, nombre: string }[];
@@ -113,19 +113,11 @@ export const ReportTypeSelector: React.FC<ReportTypeSelectorProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    <TextInput
-                        style={[
-                            styles.searchInput,
-                            {
-                                backgroundColor: bgColor,
-                                color: textColor,
-                                borderColor: borderColor
-                            }
-                        ]}
-                        placeholder="Buscar tipo de mantenimiento..."
-                        placeholderTextColor={theme === 'dark' ? '#BBBBBB' : '#999999'}
+                    <Input
                         value={searchQuery}
                         onChangeText={setSearchQuery}
+                        placeholder="Buscar tipo de mantenimiento..."
+                        style={styles.searchInput}
                     />
 
                     <View style={styles.selectionControls}>
@@ -205,10 +197,7 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         margin: 16,
-        padding: 12,
-        borderWidth: 1,
-        borderRadius: 8,
-        fontSize: 16,
+        marginBottom: 8,
     },
     selectionControls: {
         flexDirection: 'row',

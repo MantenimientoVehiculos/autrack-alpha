@@ -1,4 +1,4 @@
-// src/modules/home/components/ReportsSummaryWidget.tsx
+// src/modules/reports/components/ReportsSummaryWidget.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -6,44 +6,54 @@ import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Card } from '@/src/shared/components/ui/Card';
 import { BarChartIcon } from '@/src/shared/components/ui/Icons';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
-
-interface MaintenanceSummary {
-    totalRegistros: number;
-    costoTotal: number;
-    ultimoMantenimiento: string;
-}
+import { useStatistics } from '../hooks/useStatistics';
 
 export const ReportsSummaryWidget: React.FC = () => {
     const router = useRouter();
     const { theme } = useAppTheme();
     const { vehicles } = useVehicles();
-    const [summary, setSummary] = useState<MaintenanceSummary>({
-        totalRegistros: 0,
-        costoTotal: 0,
-        ultimoMantenimiento: ''
-    });
+    const { costByVehicle, loadCostByVehicle, isLoading } = useStatistics();
+
+    // Cargar datos al montar
+    useEffect(() => {
+        if (vehicles.length > 0) {
+            loadCostByVehicle();
+        }
+    }, [vehicles, loadCostByVehicle]);
+
+    // Calcular últimos valores para el resumen
+    const calculateSummary = () => {
+        if (!costByVehicle) {
+            return {
+                totalRegistros: 0,
+                costoTotal: 0,
+                ultimoMantenimiento: ""
+            };
+        }
+
+        // Obtener número de registros (simulado, no viene directamente en la API)
+        const totalVehicles = costByVehicle.total_vehicles;
+        const totalCost = costByVehicle.overall_total_cost;
+
+        // Fecha simulada para último mantenimiento (esto debería venir de la API)
+        const date = new Date();
+        date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+        const lastMaintenanceDate = date.toLocaleDateString();
+
+        return {
+            totalRegistros: totalVehicles,
+            costoTotal: totalCost,
+            ultimoMantenimiento: lastMaintenanceDate
+        };
+    };
+
+    const summary = calculateSummary();
 
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
     const accentColor = theme === 'dark' ? '#B27046' : '#9D7E68';
     const cardColor = theme === 'dark' ? '#222222' : '#FFFFFF';
-
-    // Generar datos de resumen para el ejemplo
-    // En una implementación real, estos datos vendrían del backend
-    useEffect(() => {
-        if (vehicles.length > 0) {
-            // Simular datos de mantenimiento para la demo
-            const date = new Date();
-            date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-
-            setSummary({
-                totalRegistros: Math.floor(Math.random() * 20) + 5,
-                costoTotal: Math.floor(Math.random() * 1000) + 200,
-                ultimoMantenimiento: date.toLocaleDateString()
-            });
-        }
-    }, [vehicles]);
 
     // Función para navegar a la pantalla de reportes
     const navigateToReports = () => {
@@ -72,7 +82,7 @@ export const ReportsSummaryWidget: React.FC = () => {
                             {summary.totalRegistros}
                         </Text>
                         <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
-                            Registros
+                            Vehículos
                         </Text>
                     </View>
 

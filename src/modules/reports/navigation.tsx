@@ -1,10 +1,12 @@
-// src/modules/reports/navigation.tsx
+// src/modules/reports/navigation.ts
 import { Stack } from 'expo-router';
 
 export type ReportsStackParamList = {
     'index': undefined;
     'filters': undefined;
     'results': { reportId?: string };
+    'statistics': undefined;
+    'vehicle-statistics': { vehicleId: number };
 };
 
 export const ReportsStack = () => {
@@ -13,7 +15,7 @@ export const ReportsStack = () => {
             <Stack.Screen
                 name="index"
                 options={{
-                    title: 'Reportes',
+                    title: 'Reportes y Estadísticas',
                     headerShown: false
                 }}
             />
@@ -28,6 +30,20 @@ export const ReportsStack = () => {
                 name="results"
                 options={{
                     title: 'Resultados',
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen
+                name="statistics"
+                options={{
+                    title: 'Estadísticas',
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen
+                name="vehicle-statistics"
+                options={{
+                    title: 'Estadísticas de Vehículo',
                     headerShown: false
                 }}
             />

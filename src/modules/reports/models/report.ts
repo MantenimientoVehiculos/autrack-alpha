@@ -77,5 +77,144 @@ export interface ReportState {
     error: string | null;
 }
 
+// Interfaces para estadísticas
+export interface MaintenanceCountByVehicle {
+    user_id: number;
+    total_vehicles: number;
+    vehicles_stats: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        maintenance_count: number;
+    }>;
+}
+
+export interface MaintenanceByCategory {
+    user_id: number;
+    total_vehicles: number;
+    vehicles_categories_stats: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        categories: Array<{
+            id: number;
+            name: string;
+            count: number;
+        }>;
+    }>;
+}
+
+export interface CompleteMaintenanceStatistics {
+    user_id: number;
+    total_vehicles: number;
+    vehicle_statistics: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        total_maintenance_count: number;
+        maintenance_by_category: Array<{
+            id: number;
+            name: string;
+            count: number;
+        }>;
+    }>;
+}
+
+export interface MaintenanceCostByVehicle {
+    user_id: number;
+    total_vehicles: number;
+    overall_total_cost: number;
+    vehicles_cost: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        total_maintenance_cost: number;
+    }>;
+}
+
+export interface MaintenanceCostByCategory {
+    user_id: number;
+    total_vehicles: number;
+    vehicles_category_costs: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        category_costs: Array<{
+            id: number;
+            name: string;
+            total_cost: number;
+            maintenance_count: number;
+        }>;
+    }>;
+}
+
+export interface MaintenanceCostByType {
+    user_id: number;
+    total_vehicles: number;
+    vehicles_type_costs: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        type_costs: Array<{
+            id: number;
+            name: string;
+            total_cost: number;
+            maintenance_count: number;
+        }>;
+    }>;
+}
+
+export interface CompleteCostStatistics {
+    user_id: number;
+    total_vehicles: number;
+    overall_total_cost: number;
+    vehicle_cost_statistics: Array<{
+        vehicle: {
+            id: number;
+            brand: string;
+            model: string;
+            year: number;
+            plate: string;
+        };
+        total_maintenance_cost: number;
+        costs_by_category: Array<{
+            id: number;
+            name: string;
+            total_cost: number;
+            maintenance_count: number;
+        }>;
+        costs_by_type: Array<{
+            id: number;
+            name: string;
+            total_cost: number;
+            maintenance_count: number;
+        }>;
+    }>;
+}
+
 // Índice de exportación
 export * from './report';

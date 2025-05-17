@@ -1,260 +1,157 @@
 // src/modules/reports/screens/ReportsScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
-    Alert,
-    ActivityIndicator,
-    TouchableOpacity,
-    Share
+    TouchableOpacity
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { Button } from '@/src/shared/components/ui/Button';
+import { Card } from '@/src/shared/components/ui/Card';
+import { BarChartIcon, CarIcon } from '@/src/shared/components/ui/Icons';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
-import { useReports } from '../hooks/useReports';
-import { ReportFilter } from '../models/report';
-import { ReportFilterForm, ReportCard, ReportChart, ReportResults } from '../components';
+import { useStatistics } from '../hooks/useStatistics';
 
 export const ReportsScreen: React.FC = () => {
     const router = useRouter();
     const { theme } = useAppTheme();
-    const { vehicles, loadVehicles } = useVehicles();
-    const {
-        reportState,
-        dateRange,
-        kmRange,
-        availableTypes,
-        loadVehicleInfo,
-        updateFilter,
-        generateReport,
-        exportReport,
-        clearReport
-    } = useReports();
-
-    const [activeStep, setActiveStep] = useState<'filter' | 'results'>('filter');
-
-    // Cargar vehículos al iniciar
-    useEffect(() => {
-        loadVehicles();
-    }, [loadVehicles]);
-
-    // Cargar información del vehículo cuando se selecciona uno
-    useEffect(() => {
-        if (reportState.filter.id_vehiculo) {
-            loadVehicleInfo(reportState.filter.id_vehiculo);
-        }
-    }, [reportState.filter.id_vehiculo, loadVehicleInfo]);
-
-    // Manejar generación de reporte
-    const handleGenerateReport = async (filter: ReportFilter) => {
-        const result = await generateReport();
-
-        if (result.success) {
-            setActiveStep('results');
-        } else {
-            Alert.alert('Error', result.error || 'No se pudo generar el reporte');
-        }
-    };
-
-    // Manejar exportación de reporte
-    const handleExportReport = async () => {
-        const formato = reportState.filter.formato || 'pdf';
-
-        Alert.alert(
-            'Exportar reporte',
-            `¿Deseas exportar el reporte en formato ${formato.toUpperCase()}?`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Exportar',
-                    onPress: async () => {
-                        const result = await exportReport(formato);
-
-                        if (result.success) {
-                            Alert.alert(
-                                'Éxito',
-                                'El reporte se ha exportado correctamente',
-                                [
-                                    { text: 'OK' },
-                                    {
-                                        text: 'Compartir',
-                                        onPress: () => {
-                                            if (result.data?.url) {
-                                                Share.share({
-                                                    url: result.data.url,
-                                                    title: 'Reporte de Mantenimiento',
-                                                    message: 'Compartir reporte de mantenimiento'
-                                                });
-                                            }
-                                        }
-                                    }
-                                ]
-                            );
-                        } else {
-                            Alert.alert('Error', result.error || 'No se pudo exportar el reporte');
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    // Volver a los filtros
-    const handleBackToFilters = () => {
-        setActiveStep('filter');
-    };
-
-    // Crear un nuevo reporte
-    const handleNewReport = () => {
-        clearReport();
-        setActiveStep('filter');
-    };
-
-    // Obtener información del vehículo seleccionado
-    const getSelectedVehicleName = () => {
-        if (!reportState.filter.id_vehiculo) return undefined;
-
-        const vehicle = vehicles.find(v => v.id_vehiculo === reportState.filter.id_vehiculo);
-        if (!vehicle) return undefined;
-
-        return `${vehicle.marca?.nombre || ''} ${vehicle.modelo?.nombre || ''} (${vehicle.placa})`;
-    };
-
-    // Obtener fechas seleccionadas
-    const getDateRange = () => {
-        if (!reportState.filter.fecha_inicio || !reportState.filter.fecha_fin) return undefined;
-
-        return {
-            start: reportState.filter.fecha_inicio,
-            end: reportState.filter.fecha_fin
-        };
-    };
+    const { vehicles } = useVehicles();
+    const { costByVehicle, loadCostByVehicle, isLoading } = useStatistics();
 
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const bgColor = theme === 'dark' ? '#111111' : '#FFFFFF';
+    const cardColor = theme === 'dark' ? '#222222' : '#FFFFFF';
+    const accentColor = theme === 'dark' ? '#B27046' : '#9D7E68';
+
+    // Ir a los filtros de reporte
+    const navigateToReportFilters = () => {
+        router.push('/reports/filters');
+    };
+
+    // Ir a estadísticas generales
+    const navigateToStatistics = () => {
+        router.push('/reports/statistics');
+    };
+
+    // Ir a estadísticas de vehículo específico
+    const navigateToVehicleStatistics = (vehicleId: number) => {
+        router.push({
+            pathname: '/reports/vehicle-statistics',
+            params: { vehicleId }
+        });
+    };
 
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
             <GradientHeader
-                title="Reportes de Mantenimiento"
+                title="Reportes y Estadísticas"
                 showBackButton={false}
             />
 
-            {activeStep === 'filter' ? (
-                <ScrollView style={styles.scrollContainer}>
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>
-                        Generar Reporte
-                    </Text>
-                    <Text style={[styles.sectionDescription, { color: textColor }]}>
-                        Configura los parámetros para generar un reporte de mantenimiento.
-                    </Text>
+            <ScrollView style={styles.scrollContainer}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>
+                    Reportes
+                </Text>
 
-                    {/* Formulario de filtros */}
-                    <ReportFilterForm
-                        onSubmit={handleGenerateReport}
-                        initialValues={reportState.filter}
-                        dateRange={dateRange}
-                        kmRange={kmRange}
-                        availableTypes={availableTypes}
-                        isLoading={reportState.isGenerating}
-                        error={reportState.error}
-                    />
-                </ScrollView>
-            ) : (
-                <ScrollView style={styles.scrollContainer}>
-                    <View style={styles.resultHeader}>
-                        <Text style={[styles.sectionTitle, { color: textColor }]}>
-                            Resultados del Reporte
+                {/* Tarjeta de generar reporte */}
+                <Card
+                    style={styles.card}
+                    onPress={navigateToReportFilters}
+                >
+                    <View style={styles.cardHeader}>
+                        <BarChartIcon size={24} color={accentColor} />
+                        <Text style={[styles.cardTitle, { color: textColor }]}>
+                            Generar Reporte
+                        </Text>
+                    </View>
+                    <Text style={[styles.cardDescription, { color: textColor }]}>
+                        Crea reportes personalizados sobre el mantenimiento de tus vehículos. Filtra por fecha, kilometraje y tipo de mantenimiento.
+                    </Text>
+                    <Button
+                        buttonVariant="primary"
+                        buttonSize="medium"
+                        onPress={navigateToReportFilters}
+                        style={styles.cardButton}
+                    >
+                        Crear Reporte
+                    </Button>
+                </Card>
+
+                {/* Tarjeta de estadísticas generales */}
+                <Card
+                    style={styles.card}
+                    onPress={navigateToStatistics}
+                >
+                    <View style={styles.cardHeader}>
+                        <BarChartIcon size={24} color={accentColor} />
+                        <Text style={[styles.cardTitle, { color: textColor }]}>
+                            Estadísticas Generales
+                        </Text>
+                    </View>
+                    <Text style={[styles.cardDescription, { color: textColor }]}>
+                        Visualiza estadísticas sobre todos tus vehículos, incluyendo costos totales, distribución por categoría y más.
+                    </Text>
+                    <Button
+                        buttonVariant="primary"
+                        buttonSize="medium"
+                        onPress={navigateToStatistics}
+                        style={styles.cardButton}
+                    >
+                        Ver Estadísticas
+                    </Button>
+                </Card>
+
+                <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>
+                    Estadísticas por Vehículo
+                </Text>
+
+                {/* Lista de vehículos para estadísticas */}
+                {vehicles.length > 0 ? (
+                    vehicles.map(vehicle => (
+                        <Card
+                            key={vehicle.id_vehiculo}
+                            style={styles.vehicleCard}
+                            onPress={() => navigateToVehicleStatistics(vehicle.id_vehiculo || 0)}
+                        >
+                            <View style={styles.vehicleCardContent}>
+                                <View style={[styles.vehicleIcon, { backgroundColor: accentColor }]}>
+                                    <CarIcon size={24} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.vehicleInfo}>
+                                    <Text style={[styles.vehicleName, { color: textColor }]}>
+                                        {vehicle.marca?.nombre} {vehicle.modelo?.nombre}
+                                    </Text>
+                                    <Text style={[styles.vehiclePlate, { color: textColor }]}>
+                                        {vehicle.placa}
+                                    </Text>
+                                </View>
+                                <View style={styles.vehicleArrowContainer}>
+                                    <Text style={[styles.vehicleArrow, { color: accentColor }]}>›</Text>
+                                </View>
+                            </View>
+                        </Card>
+                    ))
+                ) : (
+                    <Card style={styles.emptyCard}>
+                        <Text style={[styles.emptyText, { color: textColor }]}>
+                            No tienes vehículos registrados
                         </Text>
                         <Button
                             buttonVariant="outline"
-                            buttonSize="small"
-                            onPress={handleBackToFilters}
+                            buttonSize="medium"
+                            onPress={() => router.push('/vehicles/add')}
+                            style={styles.emptyButton}
                         >
-                            Editar filtros
+                            Agregar Vehículo
                         </Button>
-                    </View>
-
-                    {/* Tarjeta de estadísticas */}
-                    {reportState.result && (
-                        <>
-                            <ReportCard
-                                statistics={reportState.result.estadisticas}
-                                byType={reportState.result.por_tipo}
-                                vehicleName={getSelectedVehicleName()}
-                                dateRange={getDateRange()}
-                                onExport={handleExportReport}
-                            />
-
-                            {/* Gráfico de barras por tipo */}
-                            {reportState.result.por_tipo.length > 0 && (
-                                <ReportChart
-                                    data={reportState.result.por_tipo}
-                                    title="Costos por Tipo de Mantenimiento"
-                                    type="bar"
-                                />
-                            )}
-
-                            {/* Gráfico de pastel */}
-                            {reportState.result.por_tipo.length > 0 && (
-                                <ReportChart
-                                    data={reportState.result.por_tipo}
-                                    title="Distribución de Gastos"
-                                    type="pie"
-                                />
-                            )}
-
-                            {/* Lista detallada de registros */}
-                            <ReportResults
-                                records={reportState.result.registros}
-                                title="Detalle de Registros"
-                            />
-
-                            {/* Botón para generar nuevo reporte */}
-                            <Button
-                                buttonVariant="primary"
-                                buttonSize="large"
-                                onPress={handleNewReport}
-                                style={styles.newReportButton}
-                            >
-                                Generar Nuevo Reporte
-                            </Button>
-                        </>
-                    )}
-
-                    {/* Estado de carga */}
-                    {reportState.isGenerating && (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color={theme === 'dark' ? '#B27046' : '#9D7E68'} />
-                            <Text style={[styles.loadingText, { color: textColor }]}>
-                                Generando reporte...
-                            </Text>
-                        </View>
-                    )}
-
-                    {/* Estado de error */}
-                    {reportState.error && (
-                        <View style={styles.errorContainer}>
-                            <Text style={styles.errorText}>
-                                {reportState.error}
-                            </Text>
-                            <Button
-                                buttonVariant="outline"
-                                buttonSize="medium"
-                                onPress={handleBackToFilters}
-                                style={styles.errorButton}
-                            >
-                                Volver a los filtros
-                            </Button>
-                        </View>
-                    )}
-                </ScrollView>
-            )}
+                    </Card>
+                )}
+            </ScrollView>
         </View>
     );
 };
@@ -270,45 +167,73 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: 16,
     },
-    sectionDescription: {
+    card: {
+        padding: 16,
+        marginBottom: 16,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    cardDescription: {
         fontSize: 14,
         marginBottom: 16,
-        opacity: 0.8,
     },
-    resultHeader: {
+    cardButton: {
+        alignSelf: 'flex-start',
+    },
+    vehicleCard: {
+        marginBottom: 12,
+    },
+    vehicleCardContent: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        padding: 12,
     },
-    loadingContainer: {
-        alignItems: 'center',
+    vehicleIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
-        padding: 20,
-        marginTop: 20,
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 16,
-    },
-    errorContainer: {
-        padding: 20,
         alignItems: 'center',
-        marginTop: 20,
+        marginRight: 12,
     },
-    errorText: {
-        color: '#CF6679',
+    vehicleInfo: {
+        flex: 1,
+    },
+    vehicleName: {
         fontSize: 16,
-        textAlign: 'center',
+        fontWeight: 'bold',
+    },
+    vehiclePlate: {
+        fontSize: 14,
+    },
+    vehicleArrowContainer: {
+        justifyContent: 'center',
+    },
+    vehicleArrow: {
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    emptyCard: {
+        padding: 24,
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
         marginBottom: 16,
+        textAlign: 'center',
     },
-    errorButton: {
-        marginTop: 8,
-    },
-    newReportButton: {
-        marginVertical: 24,
+    emptyButton: {
+        alignSelf: 'center',
     },
 });
 

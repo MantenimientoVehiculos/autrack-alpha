@@ -1,13 +1,12 @@
 // src/modules/reports/components/ReportFilterForm.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Input } from '@/src/shared/components/ui/Input';
 import { Button } from '@/src/shared/components/ui/Button';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
 import { ReportFilter } from '../models/report';
 import { ReportTypeSelector } from './ReportTypeSelector';
-import { ChevronRight } from '@/src/shared/components/ui/Icons';
 
 // Props para el componente
 interface ReportFilterFormProps {
@@ -33,7 +32,6 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
     const { vehicles, loadVehicles } = useVehicles();
 
     // Estado local
-  
     const [filter, setFilter] = useState<ReportFilter>({
         id_vehiculo: initialValues?.id_vehiculo || 0,
         fecha_inicio: initialValues?.fecha_inicio || '',
@@ -138,7 +136,6 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
     const subtitleColor = theme === 'dark' ? '#BBBBBB' : '#666666';
     const bgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
     const borderColor = theme === 'dark' ? '#444444' : '#DDDDDD';
-    const primaryColor = theme === 'dark' ? '#B27046' : '#9D7E68';
 
     return (
         <View style={styles.container}>
@@ -152,20 +149,17 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                         { borderColor: errors.id_vehiculo ? '#CF6679' : borderColor, backgroundColor: bgColor }
                     ]}>
                         {vehicles.map(vehicle => (
-                            <TouchableOpacity
-                                key={vehicle.id_vehiculo}
-                                style={[
-                                    styles.vehicleOption,
-                                    filter.id_vehiculo === vehicle.id_vehiculo && {
-                                        backgroundColor: theme === 'dark' ? '#3A3A3A' : '#F0F0F0'
-                                    }
-                                ]}
-                                onPress={() => updateFilter('id_vehiculo', vehicle.id_vehiculo)}
-                            >
-                                <Text style={{ color: textColor }}>
+                            <>
+                                <Button
+                                    key={vehicle.id_vehiculo}
+                                    buttonVariant={filter.id_vehiculo === vehicle.id_vehiculo ? 'primary' : 'outline'}
+                                    buttonSize="medium"
+                                    onPress={() => updateFilter('id_vehiculo', vehicle.id_vehiculo)}
+                                    style={styles.vehicleOption}
+                                >
                                     {vehicle.marca?.nombre} {vehicle.modelo?.nombre} ({vehicle.placa})
-                                </Text>
-                            </TouchableOpacity>
+                                </Button>
+                            </>
                         ))}
                     </View>
                     {errors.id_vehiculo && (
@@ -225,43 +219,16 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
 
                 {/* Selector de Tipos de Mantenimiento */}
                 <Text style={[styles.sectionTitle, { color: textColor }]}>Tipos de Mantenimiento</Text>
-                <TouchableOpacity
-                    style={[styles.typeSelector, { borderColor, backgroundColor: bgColor }]}
+                <Button
+                    buttonVariant="outline"
+                    buttonSize="medium"
                     onPress={() => setShowTypeSelector(true)}
+                    style={styles.typeButton}
                 >
-                    <Text style={{ color: filter.tipos_mantenimiento?.length ? textColor : subtitleColor }}>
-                        {filter.tipos_mantenimiento?.length
-                            ? `${filter.tipos_mantenimiento.length} tipos seleccionados`
-                            : 'Seleccionar tipos de mantenimiento'}
-                    </Text>
-                    <ChevronRight size={20} color={textColor} />
-                </TouchableOpacity>
-
-                {/* Formato de Exportación */}
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Formato de Exportación</Text>
-                <View style={styles.formatOptions}>
-                    {(['pdf', 'excel', 'csv'] as const).map(format => (
-                        <TouchableOpacity
-                            key={format}
-                            style={[
-                                styles.formatOption,
-                                { borderColor },
-                                filter.formato === format && {
-                                    backgroundColor: theme === 'dark' ? '#B27046' : '#9D7E68',
-                                    borderColor: theme === 'dark' ? '#B27046' : '#9D7E68'
-                                }
-                            ]}
-                            onPress={() => updateFilter('formato', format)}
-                        >
-                            <Text style={{
-                                color: filter.formato === format ? '#FFFFFF' : textColor,
-                                fontWeight: filter.formato === format ? 'bold' : 'normal'
-                            }}>
-                                {format.toUpperCase()}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                    {filter.tipos_mantenimiento?.length
+                        ? `${filter.tipos_mantenimiento.length} tipos seleccionados`
+                        : 'Seleccionar tipos de mantenimiento'}
+                </Button>
 
                 {/* Mensaje de error general */}
                 {error && (
@@ -300,7 +267,6 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flex: 1,
-        padding: 16,
     },
     sectionTitle: {
         fontSize: 18,
@@ -311,6 +277,7 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginBottom: 16,
     },
     halfField: {
         width: '48%',
@@ -323,38 +290,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     vehicleSelector: {
-        borderWidth: 1,
-        borderRadius: 8,
         marginBottom: 8,
+        gap: 8,
     },
     vehicleOption: {
-        padding: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+        marginBottom: 8,
     },
-    typeSelector: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 16,
-        borderWidth: 1,
-        borderRadius: 8,
+    typeButton: {
         marginBottom: 16,
-    },
-    formatOptions: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 24,
-    },
-    formatOption: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        marginHorizontal: 4,
-        borderWidth: 1,
-        borderRadius: 8,
     },
     errorText: {
         color: '#CF6679',
