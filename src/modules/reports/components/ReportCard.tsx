@@ -1,4 +1,3 @@
-// src/modules/reports/components/ReportCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
@@ -24,6 +23,9 @@ export const ReportCard: React.FC<ReportCardProps> = ({
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
     const accentColor = theme === 'dark' ? '#B27046' : '#9D7E68';
+    const cardBgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
+    const highlightBgColor = theme === 'dark' ? '#333333' : '#F9F9F9';
+    const borderColor = theme === 'dark' ? '#444444' : '#EEEEEE';
 
     // Formatear fechas
     const formatDate = (dateString?: string) => {
@@ -38,7 +40,7 @@ export const ReportCard: React.FC<ReportCardProps> = ({
     };
 
     return (
-        <Card style={styles.container}>
+        <Card style={[styles.container, { backgroundColor: cardBgColor }]}>
             {/* Encabezado con información del vehículo y período */}
             {(vehicleName || dateRange) && (
                 <View style={styles.header}>
@@ -49,15 +51,20 @@ export const ReportCard: React.FC<ReportCardProps> = ({
                     )}
 
                     {dateRange && (
-                        <Text style={[styles.dateRange, { color: secondaryTextColor }]}>
-                            {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
-                        </Text>
+                        <View style={[styles.dateRangeContainer, { backgroundColor: highlightBgColor, borderColor }]}>
+                            <Text style={[styles.dateRangeLabel, { color: secondaryTextColor }]}>
+                                Período:
+                            </Text>
+                            <Text style={[styles.dateRange, { color: textColor }]}>
+                                {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
+                            </Text>
+                        </View>
                     )}
                 </View>
             )}
 
             {/* Estadísticas generales */}
-            <View style={styles.statsContainer}>
+            <View style={[styles.statsContainer, { backgroundColor: highlightBgColor, borderColor }]}>
                 <View style={styles.statItem}>
                     <Text style={[styles.statValue, { color: textColor }]}>
                         {statistics.total_registros}
@@ -67,14 +74,18 @@ export const ReportCard: React.FC<ReportCardProps> = ({
                     </Text>
                 </View>
 
+                <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
                 <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: textColor }]}>
+                    <Text style={[styles.statValue, { color: accentColor }]}>
                         ${statistics.costo_total.toFixed(2)}
                     </Text>
                     <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
                         Costo Total
                     </Text>
                 </View>
+
+                <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
                 <View style={styles.statItem}>
                     <Text style={[styles.statValue, { color: textColor }]}>
@@ -90,11 +101,17 @@ export const ReportCard: React.FC<ReportCardProps> = ({
             {byType.length > 0 && (
                 <View style={styles.typesContainer}>
                     <Text style={[styles.sectionTitle, { color: textColor }]}>
-                        Por Tipo de Mantenimiento
+                        Resumen por Tipo
                     </Text>
 
-                    {byType.slice(0, 3).map(type => (
-                        <View key={type.id} style={styles.typeItem}>
+                    {byType.slice(0, 4).map((type, index) => (
+                        <View
+                            key={type.id}
+                            style={[
+                                styles.typeItem,
+                                index !== byType.slice(0, 4).length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
+                            ]}
+                        >
                             <View style={styles.typeInfo}>
                                 <Text
                                     style={[styles.typeName, { color: textColor }]}
@@ -103,19 +120,34 @@ export const ReportCard: React.FC<ReportCardProps> = ({
                                 >
                                     {type.nombre}
                                 </Text>
-                                <Text style={[styles.typeCount, { color: secondaryTextColor }]}>
-                                    {type.cantidad} {type.cantidad === 1 ? 'registro' : 'registros'}
-                                </Text>
+                                <View style={styles.typeMetrics}>
+                                    <Text style={[styles.typeCount, { color: secondaryTextColor }]}>
+                                        {type.cantidad} {type.cantidad === 1 ? 'registro' : 'registros'}
+                                    </Text>
+                                    <Text style={[styles.typeCost, { color: accentColor }]}>
+                                        ${type.costo_total.toFixed(2)}
+                                    </Text>
+                                </View>
                             </View>
-                            <Text style={[styles.typeCost, { color: accentColor }]}>
-                                ${type.costo_total.toFixed(2)}
-                            </Text>
+
+                            {/* Indicador visual de porcentaje */}
+                            <View style={[styles.percentBar, { backgroundColor: highlightBgColor }]}>
+                                <View
+                                    style={[
+                                        styles.percentFill,
+                                        {
+                                            width: `${(type.costo_total / statistics.costo_total) * 100}%`,
+                                            backgroundColor: accentColor
+                                        }
+                                    ]}
+                                />
+                            </View>
                         </View>
                     ))}
 
-                    {byType.length > 3 && (
+                    {byType.length > 4 && (
                         <Text style={[styles.moreTypes, { color: accentColor }]}>
-                            + {byType.length - 3} más
+                            + {byType.length - 4} más
                         </Text>
                     )}
                 </View>
@@ -126,6 +158,7 @@ export const ReportCard: React.FC<ReportCardProps> = ({
                 <TouchableOpacity
                     style={[styles.exportButton, { backgroundColor: accentColor }]}
                     onPress={onExport}
+                    activeOpacity={0.8}
                 >
                     <Text style={styles.exportButtonText}>
                         Exportar Reporte
@@ -140,6 +173,12 @@ const styles = StyleSheet.create({
     container: {
         padding: 16,
         marginBottom: 16,
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     header: {
         marginBottom: 16,
@@ -147,15 +186,30 @@ const styles = StyleSheet.create({
     vehicleName: {
         fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 4,
+        marginBottom: 8,
+    },
+    dateRangeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    dateRangeLabel: {
+        fontSize: 14,
+        marginRight: 8,
     },
     dateRange: {
         fontSize: 14,
+        fontWeight: '500',
     },
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 20,
+        borderRadius: 10,
+        borderWidth: 1,
+        padding: 12,
     },
     statItem: {
         alignItems: 'center',
@@ -169,6 +223,11 @@ const styles = StyleSheet.create({
     statLabel: {
         fontSize: 12,
     },
+    divider: {
+        width: 1,
+        height: '100%',
+        marginHorizontal: 10,
+    },
     typesContainer: {
         marginVertical: 8,
     },
@@ -178,31 +237,40 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     typeItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
+        paddingVertical: 12,
     },
     typeInfo: {
-        flex: 1,
+        marginBottom: 6,
     },
     typeName: {
         fontSize: 14,
         fontWeight: '500',
-        marginBottom: 2,
+        marginBottom: 4,
+    },
+    typeMetrics: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     typeCount: {
         fontSize: 12,
     },
     typeCost: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
+    },
+    percentBar: {
+        height: 6,
+        borderRadius: 3,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    percentFill: {
+        height: '100%',
+        borderRadius: 3,
     },
     moreTypes: {
         textAlign: 'center',
-        marginTop: 8,
+        marginTop: 12,
         fontSize: 14,
     },
     exportButton: {

@@ -1,4 +1,3 @@
-// src/modules/reports/screens/ReportResultsScreen.tsx
 import React, { useState } from 'react';
 import {
     View,
@@ -6,25 +5,36 @@ import {
     StyleSheet,
     ScrollView,
     Alert,
-    Share
+    Share,
+    TouchableOpacity
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { Button } from '@/src/shared/components/ui/Button';
+import { Card } from '@/src/shared/components/ui/Card';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
 import { useReports } from '../hooks/useReports';
-import { ReportCard, ReportChart, ReportResults } from '../components';
+import ReportCard from '../components/ReportCard';
+import ReportChart from '../components/ReportChart';
+import ReportResults from '../components/ReportResults';
 
 export const ReportResultsScreen: React.FC = () => {
     const router = useRouter();
     const { theme } = useAppTheme();
     const { vehicles } = useVehicles();
     const { reportState, exportReport } = useReports();
+    const [activeTab, setActiveTab] = useState<'summary' | 'charts' | 'details'>('summary');
 
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
+    const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
     const bgColor = theme === 'dark' ? '#111111' : '#FFFFFF';
+    const tabBgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
+    const accentColor = theme === 'dark' ? '#B27046' : '#9D7E68';
+    const borderColor = theme === 'dark' ? '#444444' : '#EEEEEE';
+    const activeBorderColor = accentColor;
+    const inactiveTextColor = theme === 'dark' ? '#777777' : '#999999';
 
     // Verificar que hay resultados
     if (!reportState.result) {
@@ -101,6 +111,18 @@ export const ReportResultsScreen: React.FC = () => {
         };
     };
 
+    // Transformar los datos para los gráficos
+    const prepareChartData = () => {
+        if (!reportState.result?.por_tipo) return [];
+
+        return reportState.result.por_tipo.map(item => ({
+            name: item.nombre,
+            value: item.costo_total
+        }));
+    };
+
+    const chartData = prepareChartData();
+
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
             <GradientHeader
@@ -108,11 +130,57 @@ export const ReportResultsScreen: React.FC = () => {
                 showBackButton={true}
             />
 
-            <ScrollView style={styles.scrollContainer}>
-                <View style={styles.resultHeader}>
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>
-                        Resultados del Reporte
+            {/* Navegación por pestañas */}
+            <View style={[styles.tabBar, { backgroundColor: tabBgColor, borderBottomColor: borderColor }]}>
+                <TouchableOpacity
+                    style={[
+                        styles.tab,
+                        activeTab === 'summary' && [styles.activeTab, { borderBottomColor: activeBorderColor }]
+                    ]}
+                    onPress={() => setActiveTab('summary')}
+                >
+                    <Text style={[
+                        styles.tabText,
+                        { color: activeTab === 'summary' ? accentColor : inactiveTextColor }
+                    ]}>
+                        Resumen
                     </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.tab,
+                        activeTab === 'charts' && [styles.activeTab, { borderBottomColor: activeBorderColor }]
+                    ]}
+                    onPress={() => setActiveTab('charts')}
+                >
+                    <Text style={[
+                        styles.tabText,
+                        { color: activeTab === 'charts' ? accentColor : inactiveTextColor }
+                    ]}>
+                        Gráficos
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.tab,
+                        activeTab === 'details' && [styles.activeTab, { borderBottomColor: activeBorderColor }]
+                    ]}
+                    onPress={() => setActiveTab('details')}
+                >
+                    <Text style={[
+                        styles.tabText,
+                        { color: activeTab === 'details' ? accentColor : inactiveTextColor }
+                    ]}>
+                        Detalle
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.scrollContainer}>
+                {/* Acciones rápidas */}
+                <View style={styles.actionBar}>
                     <Button
                         buttonVariant="outline"
                         buttonSize="small"
@@ -120,44 +188,81 @@ export const ReportResultsScreen: React.FC = () => {
                     >
                         Editar filtros
                     </Button>
+
+                    <Button
+                        buttonVariant="outline"
+                        buttonSize="small"
+                        onPress={handleExportReport}
+                    >
+                        Exportar
+                    </Button>
                 </View>
 
-                {/* Tarjeta de estadísticas */}
                 {reportState.result && (
                     <>
-                        <ReportCard
-                            statistics={reportState.result.estadisticas}
-                            byType={reportState.result.por_tipo}
-                            vehicleName={getSelectedVehicleName()}
-                            dateRange={getDateRange()}
-                            onExport={handleExportReport}
-                        />
-
-                        {/* Gráfico de barras por tipo */}
-                        {reportState.result.por_tipo.length > 0 && (
-                            <ReportChart
-                                data={reportState.result.por_tipo}
-                                title="Costos por Tipo de Mantenimiento"
-                                type="bar"
+                        {/* Pestaña de Resumen */}
+                        {activeTab === 'summary' && (
+                            <ReportCard
+                                statistics={reportState.result.estadisticas}
+                                byType={reportState.result.por_tipo}
+                                vehicleName={getSelectedVehicleName()}
+                                dateRange={getDateRange()}
+                                onExport={handleExportReport}
                             />
                         )}
 
-                        {/* Gráfico de pastel */}
-                        {reportState.result.por_tipo.length > 0 && (
-                            <ReportChart
-                                data={reportState.result.por_tipo}
-                                title="Distribución de Gastos"
-                                type="pie"
-                            />
+                        {/* Pestaña de Gráficos */}
+                        {activeTab === 'charts' && chartData.length > 0 && (
+                            <View style={styles.chartsContainer}>
+                                {/* Título de la sección */}
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>
+                                    Visualización de Gastos
+                                </Text>
+
+                                {/* Descripción */}
+                                <Card style={[styles.infoCard, { backgroundColor: tabBgColor }]}>
+                                    <Text style={[styles.infoText, { color: secondaryTextColor }]}>
+                                        Visualice la distribución de sus gastos de mantenimiento por tipo.
+                                        Los gráficos muestran la proporción de cada categoría en relación
+                                        al costo total.
+                                    </Text>
+                                </Card>
+
+                                {/* Gráfico de pastel */}
+                                <ReportChart
+                                    data={chartData}
+                                    title="Distribución de Gastos"
+                                    type="pie"
+                                    valuePrefix="$"
+                                />
+
+                                {/* Gráfico de barras */}
+                                <ReportChart
+                                    data={chartData}
+                                    title="Costos por Tipo de Mantenimiento"
+                                    type="bar"
+                                    valuePrefix="$"
+                                />
+                            </View>
                         )}
 
-                        {/* Lista detallada de registros */}
-                        <ReportResults
-                            records={reportState.result.registros}
-                            title="Detalle de Registros"
-                        />
+                        {/* Pestaña de Detalles */}
+                        {activeTab === 'details' && (
+                            <View style={styles.detailsContainer}>
+                                {/* Título de la sección */}
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>
+                                    Detalle de Registros
+                                </Text>
 
-                        {/* Botón para exportar */}
+                                {/* Lista detallada de registros */}
+                                <ReportResults
+                                    records={reportState.result.registros}
+                                    title={`Registros (${reportState.result.registros.length})`}
+                                />
+                            </View>
+                        )}
+
+                        {/* Botón para exportar siempre visible al final */}
                         <Button
                             buttonVariant="primary"
                             buttonSize="large"
@@ -198,15 +303,51 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
     },
-    resultHeader: {
+    tabBar: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    tab: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    activeTab: {
+        borderBottomWidth: 2,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    actionBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
         marginBottom: 16,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
+        marginBottom: 12,
+    },
+    chartsContainer: {
+        marginBottom: 16,
+    },
+    detailsContainer: {
+        marginBottom: 16,
+    },
+    infoCard: {
+        padding: 12,
+        marginBottom: 16,
+        borderRadius: 8,
+    },
+    infoText: {
+        fontSize: 14,
+        lineHeight: 20,
     },
     errorContainer: {
         padding: 20,
