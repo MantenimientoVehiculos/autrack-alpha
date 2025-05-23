@@ -1,8 +1,4 @@
-// ============================================
-// 4. SERVICIO PRINCIPAL DE EXPORTACIÓN
-// src/modules/reports/services/exportService.ts
-// ============================================
-
+import * as Sharing from 'expo-sharing';
 import { ReportResponse } from '../models/report';
 import { pdfService } from './pdfService';
 import { excelService } from './excelService';
@@ -15,38 +11,40 @@ interface ExportOptions {
 }
 
 class ExportService {
-    private generateFilename(vehicleName: string, format: string, dateRange?: { start: string; end: string }): string {
-        const cleanVehicleName = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
-        const dateStr = dateRange
-            ? `_${dateRange.start}_${dateRange.end}`
-            : '_completo';
-        const timestamp = new Date().toISOString().split('T')[0];
-
-        return `Reporte_${cleanVehicleName}${dateStr}_${timestamp}.${format}`;
+    private async shareFile(fileUri: string, mimeType: string, dialogTitle: string): Promise<void> {
+        try {
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, {
+                    mimeType,
+                    dialogTitle,
+                    UTI: this.getUTI(mimeType),
+                });
+            } else {
+                throw new Error('Compartir no está disponible en este dispositivo');
+            }
+        } catch (error) {
+            console.error('Error compartiendo archivo:', error);
+            throw error;
+        }
     }
 
-    private downloadBlob(blob: Blob, filename: string) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.style.display = 'none';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Limpiar URL temporal después de un pequeño delay
-        setTimeout(() => {
-            URL.revokeObjectURL(url);
-        }, 100);
+    private getUTI(mimeType: string): string {
+        switch (mimeType) {
+            case 'application/pdf':
+                return 'com.adobe.pdf';
+            case 'application/vnd.ms-excel':
+                return 'com.microsoft.excel.xls';
+            case 'text/csv':
+                return 'public.comma-separated-values-text';
+            default:
+                return 'public.data';
+        }
     }
 
     async exportToPDF(data: ReportResponse, options: ExportOptions): Promise<void> {
         try {
-            const blob = pdfService.generatePDF(data, options);
-            const filename = options.filename || this.generateFilename(options.vehicleName, 'pdf', options.dateRange);
-            this.downloadBlob(blob, filename);
+            const fileUri = await pdfService.generatePDF(data, options);
+            await this.shareFile(fileUri, 'application/pdf', 'Compartir Reporte PDF');
         } catch (error) {
             console.error('Error exportando PDF:', error);
             throw new Error('No se pudo exportar el reporte en formato PDF');
@@ -55,9 +53,8 @@ class ExportService {
 
     async exportToExcel(data: ReportResponse, options: ExportOptions): Promise<void> {
         try {
-            const blob = excelService.generateExcel(data, options);
-            const filename = options.filename || this.generateFilename(options.vehicleName, 'xlsx', options.dateRange);
-            this.downloadBlob(blob, filename);
+            const fileUri = await excelService.generateExcel(data, options);
+            await this.shareFile(fileUri, 'application/vnd.ms-excel', 'Compartir Reporte Excel');
         } catch (error) {
             console.error('Error exportando Excel:', error);
             throw new Error('No se pudo exportar el reporte en formato Excel');
@@ -66,9 +63,8 @@ class ExportService {
 
     async exportToCSV(data: ReportResponse, options: ExportOptions): Promise<void> {
         try {
-            const blob = csvService.generateCSV(data, options);
-            const filename = options.filename || this.generateFilename(options.vehicleName, 'csv', options.dateRange);
-            this.downloadBlob(blob, filename);
+            const fileUri = await csvService.generateCSV(data, options);
+            await this.shareFile(fileUri, 'text/csv', 'Compartir Reporte CSV');
         } catch (error) {
             console.error('Error exportando CSV:', error);
             throw new Error('No se pudo exportar el reporte en formato CSV');

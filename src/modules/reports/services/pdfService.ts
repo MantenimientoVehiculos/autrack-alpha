@@ -1,5 +1,7 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
 import { ReportResponse, ReportMaintenanceRecord } from '../models/report';
 
 interface PDFOptions {
@@ -25,189 +27,277 @@ class PDFService {
         }
     }
 
-    private addHeader(doc: jsPDF, vehicleName: string, dateRange?: { start: string; end: string }): number {
-        doc.setFontSize(20);
-        doc.setTextColor(157, 126, 104);
-        doc.text('REPORTE DE MANTENIMIENTO', 105, 25, { align: 'center' });
+    private generateHTML(data: ReportResponse, options: PDFOptions): string {
+        const currentDate = new Date().toLocaleDateString('es-EC');
+        const periodText = options.dateRange 
+            ? `${this.formatDate(options.dateRange.start)} - ${this.formatDate(options.dateRange.end)}`
+            : 'Todos los registros';
 
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Vehículo: ${vehicleName}`, 20, 40);
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Reporte de Mantenimiento</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: 'Helvetica Neue', Arial, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.4;
+                    color: #333;
+                    padding: 20px;
+                    background: white;
+                }
+                
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #9D7E68;
+                    padding-bottom: 20px;
+                }
+                
+                .header h1 {
+                    color: #9D7E68;
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }
+                
+                .header-info {
+                    text-align: left;
+                    margin-top: 15px;
+                }
+                
+                .header-info p {
+                    margin: 5px 0;
+                    font-size: 14px;
+                }
+                
+                .section {
+                    margin-bottom: 25px;
+                }
+                
+                .section-title {
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #333;
+                    margin-bottom: 10px;
+                    border-bottom: 1px solid #ddd;
+                    padding-bottom: 5px;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 15px;
+                    font-size: 11px;
+                }
+                
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: left;
+                    vertical-align: top;
+                }
+                
+                th {
+                    background-color: #9D7E68;
+                    color: white;
+                    font-weight: bold;
+                    text-align: center;
+                }
+                
+                .stats-table td:last-child {
+                    text-align: right;
+                    font-weight: bold;
+                }
+                
+                .records-table tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                
+                .records-table td:nth-child(3),
+                .records-table td:nth-child(4) {
+                    text-align: right;
+                }
+                
+                .type-table td:nth-child(2),
+                .type-table td:nth-child(3),
+                .type-table td:nth-child(4) {
+                    text-align: right;
+                }
+                
+                .footer {
+                    margin-top: 40px;
+                    text-align: center;
+                    font-size: 10px;
+                    color: #888;
+                    border-top: 1px solid #ddd;
+                    padding-top: 10px;
+                }
+                
+                .page-break {
+                    page-break-before: always;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>REPORTE DE MANTENIMIENTO</h1>
+                <div class="header-info">
+                    <p><strong>Vehículo:</strong> ${options.vehicleName}</p>
+                    <p><strong>Período:</strong> ${periodText}</p>
+                    <p><strong>Generado:</strong> ${currentDate}</p>
+                </div>
+            </div>
 
-        if (dateRange) {
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(
-                `Período: ${this.formatDate(dateRange.start)} - ${this.formatDate(dateRange.end)}`,
-                20,
-                50
-            );
-        }
+            <div class="section">
+                <h2 class="section-title">RESUMEN ESTADÍSTICO</h2>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Total de Registros</td>
+                            <td>${data.estadisticas.total_registros}</td>
+                        </tr>
+                        <tr>
+                            <td>Costo Total</td>
+                            <td>${this.formatCurrency(data.estadisticas.costo_total)}</td>
+                        </tr>
+                        <tr>
+                            <td>Costo Promedio</td>
+                            <td>${this.formatCurrency(data.estadisticas.costo_promedio)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-        doc.setFontSize(10);
-        doc.text(`Generado el: ${new Date().toLocaleDateString('es-EC')}`, 20, 60);
+            ${data.por_tipo.length > 0 ? `
+            <div class="section">
+                <h2 class="section-title">RESUMEN POR TIPO DE MANTENIMIENTO</h2>
+                <table class="type-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Mantenimiento</th>
+                            <th>Cantidad</th>
+                            <th>Costo Total</th>
+                            <th>Costo Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.por_tipo.map(type => `
+                        <tr>
+                            <td>${type.nombre}</td>
+                            <td>${type.cantidad}</td>
+                            <td>${this.formatCurrency(type.costo_total)}</td>
+                            <td>${this.formatCurrency(type.costo_total / type.cantidad)}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : ''}
 
-        doc.setDrawColor(157, 126, 104);
-        doc.setLineWidth(0.5);
-        doc.line(20, 65, 190, 65);
+            <div class="page-break"></div>
 
-        return 75;
+            <div class="section">
+                <h2 class="section-title">DETALLE DE MANTENIMIENTOS</h2>
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Kilometraje</th>
+                            <th>Costo</th>
+                            <th>Notas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.registros.map(record => `
+                        <tr>
+                            <td>${this.formatDate(record.fecha)}</td>
+                            <td>${record.tipo_mantenimiento.nombre}</td>
+                            <td>${record.kilometraje.toLocaleString()}</td>
+                            <td>${this.formatCurrency(record.costo)}</td>
+                            <td>${record.notas || '-'}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer">
+                <p>Generado por Sistema de Gestión Vehicular</p>
+            </div>
+        </body>
+        </html>
+        `;
     }
 
-    private addStatistics(doc: jsPDF, statistics: any, startY: number): number {
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text('RESUMEN ESTADÍSTICO', 20, startY);
+    public async generatePDF(data: ReportResponse, options: PDFOptions): Promise<string> {
+        try {
+            const html = this.generateHTML(data, options);
+            
+            const { uri } = await Print.printToFileAsync({
+                html,
+                base64: false,
+                width: 612,
+                height: 792,
+                margins: {
+                    left: 40,
+                    top: 40,
+                    right: 40,
+                    bottom: 40,
+                },
+            });
 
-        const statsData = [
-            ['Total de Registros', statistics.total_registros.toString()],
-            ['Costo Total', this.formatCurrency(statistics.costo_total)],
-            ['Costo Promedio', this.formatCurrency(statistics.costo_promedio)]
-        ];
+            return uri;
+        } catch (error) {
+            console.error('Error generando PDF:', error);
+            throw new Error('No se pudo generar el archivo PDF');
+        }
+    }
 
-        autoTable(doc, {
-            startY: startY + 10,
-            head: [['Concepto', 'Valor']],
-            body: statsData,
-            theme: 'grid',
-            headStyles: {
-                fillColor: [157, 126, 104],
-                textColor: 255,
-                fontSize: 12,
-                fontStyle: 'bold'
-            },
-            bodyStyles: { fontSize: 11 },
-            columnStyles: {
-                0: { cellWidth: 80 },
-                1: { cellWidth: 80, halign: 'right' }
+    public async exportarReporteComoPDF(html: string): Promise<void> {
+        try {
+            const { uri } = await Print.printToFileAsync({
+                html,
+                base64: false,
+                width: 612,
+                height: 792,
+                margins: {
+                    left: 40,
+                    top: 40,
+                    right: 40,
+                    bottom: 40,
+                },
+            });
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(uri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: 'Compartir Reporte',
+                    UTI: 'com.adobe.pdf',
+                });
+            } else {
+                throw new Error('Compartir no está disponible en este dispositivo');
             }
-        });
-
-        return (doc as any).lastAutoTable.finalY + 20;
-    }
-
-    private addTypeBreakdown(doc: jsPDF, byType: any[], startY: number): number {
-        if (!byType.length) return startY;
-
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text('RESUMEN POR TIPO DE MANTENIMIENTO', 20, startY);
-
-        const typeData = byType.map(type => [
-            type.nombre,
-            type.cantidad.toString(),
-            this.formatCurrency(type.costo_total),
-            this.formatCurrency(type.costo_total / type.cantidad)
-        ]);
-
-        autoTable(doc, {
-            startY: startY + 10,
-            head: [['Tipo de Mantenimiento', 'Cantidad', 'Costo Total', 'Costo Promedio']],
-            body: typeData,
-            theme: 'grid',
-            headStyles: {
-                fillColor: [157, 126, 104],
-                textColor: 255,
-                fontSize: 11,
-                fontStyle: 'bold'
-            },
-            bodyStyles: { fontSize: 10 },
-            columnStyles: {
-                0: { cellWidth: 80 },
-                1: { cellWidth: 30, halign: 'center' },
-                2: { cellWidth: 40, halign: 'right' },
-                3: { cellWidth: 40, halign: 'right' }
-            }
-        });
-
-        return (doc as any).lastAutoTable.finalY + 20;
-    }
-
-    private addMaintenanceRecords(
-        doc: jsPDF,
-        records: ReportMaintenanceRecord[],
-        startY: number
-    ): number {
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text('DETALLE DE MANTENIMIENTOS', 20, startY);
-
-        const tableData = records.map(record => [
-            this.formatDate(record.fecha),
-            record.tipo_mantenimiento.nombre,
-            record.kilometraje.toLocaleString(),
-            this.formatCurrency(record.costo),
-            record.notas || '-'
-        ]);
-
-        autoTable(doc, {
-            startY: startY + 10,
-            head: [['Fecha', 'Tipo', 'Kilometraje', 'Costo', 'Notas']],
-            body: tableData,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [157, 126, 104],
-                textColor: 255,
-                fontSize: 10,
-                fontStyle: 'bold'
-            },
-            bodyStyles: { fontSize: 9 },
-            columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 45 },
-                2: { cellWidth: 25, halign: 'right' },
-                3: { cellWidth: 25, halign: 'right' },
-                4: { cellWidth: 70 }
-            },
-            styles: { cellPadding: 3, fontSize: 9 }
-        });
-
-        return (doc as any).lastAutoTable.finalY + 20;
-    }
-
-    private addFooter(doc: jsPDF): void {
-        const pageCount = doc.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(8);
-            doc.setTextColor(128, 128, 128);
-            doc.text(
-                `Página ${i} de ${pageCount}`,
-                105,
-                doc.internal.pageSize.height - 10,
-                { align: 'center' }
-            );
-            doc.text(
-                'Generado por Sistema de Gestión Vehicular',
-                105,
-                doc.internal.pageSize.height - 5,
-                { align: 'center' }
-            );
+        } catch (error) {
+            console.error('Error exportando PDF:', error);
+            throw new Error('No se pudo exportar el archivo PDF');
         }
-    }
-
-    public generatePDF(data: ReportResponse, options: PDFOptions): Blob {
-        const doc = new jsPDF();
-
-        let currentY = this.addHeader(doc, options.vehicleName, options.dateRange);
-        currentY = this.addStatistics(doc, data.estadisticas, currentY);
-
-        if (currentY > 200) {
-            doc.addPage();
-            currentY = 20;
-        }
-
-        currentY = this.addTypeBreakdown(doc, data.por_tipo, currentY);
-
-        if (currentY > 150) {
-            doc.addPage();
-            currentY = 20;
-        }
-
-        this.addMaintenanceRecords(doc, data.registros, currentY);
-        this.addFooter(doc);
-
-        return doc.output('blob');
     }
 }
 
