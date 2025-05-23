@@ -22,7 +22,7 @@ export const ReportChart: React.FC<StatisticsChartProps> = ({
     title,
     type = 'bar',
     valuePrefix = '',
-    valueFormatter = (value) => `${valuePrefix}${value.toFixed(2)}`
+    valueFormatter = (value) => `${valuePrefix}${Number(value).toFixed(2)}`
 }) => {
     const { theme } = useAppTheme();
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';

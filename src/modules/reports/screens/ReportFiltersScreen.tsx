@@ -10,7 +10,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
-import { useReports } from '../hooks/useReports';
+import { useReports } from '../context/ReportsProvider';
 import { ReportFilterForm } from '../components/ReportFilterForm';
 import { ReportFilter } from '../models/report';
 
@@ -25,7 +25,6 @@ export const ReportFiltersScreen: React.FC = () => {
         kmRange,
         availableTypes,
         loadVehicleInfo,
-        updateFilter,
         generateReport,
         clearReport
     } = useReports();
@@ -38,7 +37,6 @@ export const ReportFiltersScreen: React.FC = () => {
     useEffect(() => {
         loadVehicles();
 
-        // No limpiar todo el reporte si tenemos un parámetro de vehículo
         const vehicleId = params.vehicleId ? parseInt(params.vehicleId as string, 10) : 0;
         if (vehicleId && vehicleId !== reportState.filter.id_vehiculo) {
             // Si venimos con un ID de vehículo preseleccionado, cargar su información
@@ -47,17 +45,41 @@ export const ReportFiltersScreen: React.FC = () => {
             // Solo limpiar si no hay un vehículo preseleccionado
             clearReport();
         }
-    }, [loadVehicles, clearReport, loadVehicleInfo, reportState.filter.id_vehiculo]);
+    }, [loadVehicles, clearReport, loadVehicleInfo, params.vehicleId]);
 
     // Manejar generación de reporte
     const handleGenerateReport = async (filter: ReportFilter) => {
-        console.log("Generando reporte con filtros:", filter);
-        const result = await generateReport(filter); // Pasamos el filtro explícitamente
+        console.log("=== INICIANDO GENERACIÓN DE REPORTE ===");
+        console.log("Filtros recibidos:", filter);
 
-        if (result.success) {
-            router.push('/reports/results');
-        } else {
-            Alert.alert('Error', result.error || 'No se pudo generar el reporte');
+        // Validaciones antes de generar
+        if (!filter.id_vehiculo) {
+            Alert.alert('Error', 'Debe seleccionar un vehículo');
+            return;
+        }
+
+        try {
+            console.log("Llamando a generateReport...");
+            const result = await generateReport(filter);
+            console.log("Resultado de generateReport:", result);
+
+            if (result.success) {
+                console.log("=== REPORTE GENERADO EXITOSAMENTE ===");
+                console.log("Registros encontrados:", result.data?.registros?.length || 0);
+                console.log("Navegando a /reports/results...");
+
+                // Navegar a resultados
+                router.push('/reports/results');
+                console.log("Navegación completada");
+            } else {
+                console.log("=== ERROR AL GENERAR REPORTE ===");
+                console.log("Error:", result.error);
+                Alert.alert('Error', result.error || 'No se pudo generar el reporte');
+            }
+        } catch (error) {
+            console.error("=== ERROR INESPERADO ===");
+            console.error("Error:", error);
+            Alert.alert('Error', 'Ocurrió un error inesperado al generar el reporte');
         }
     };
 
@@ -108,6 +130,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginBottom: 16,
         opacity: 0.8,
+    },
+    debugInfo: {
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)',
+    },
+    debugTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    debugText: {
+        fontSize: 12,
+        marginBottom: 4,
     },
 });
 

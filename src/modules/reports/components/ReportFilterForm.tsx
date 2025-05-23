@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+// ============================================
+// REPORTFILTERFORM CORREGIDO
+// src/modules/reports/components/ReportFilterForm.tsx
+// ============================================
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Input } from '@/src/shared/components/ui/Input';
@@ -7,7 +12,6 @@ import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
 import { ReportFilter } from '../models/report';
 import { ReportTypeSelector } from './ReportTypeSelector';
 
-// Props para el componente
 interface ReportFilterFormProps {
     onSubmit: (data: ReportFilter) => void;
     initialValues?: Partial<ReportFilter>;
@@ -30,8 +34,8 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
     const { theme } = useAppTheme();
     const { vehicles, loadVehicles } = useVehicles();
 
-    // Estado local
-    const [filter, setFilter] = useState<ReportFilter>({
+    // Estado local inicializado de forma estable
+    const [filter, setFilter] = useState<ReportFilter>(() => ({
         id_vehiculo: initialValues?.id_vehiculo || 0,
         fecha_inicio: initialValues?.fecha_inicio || '',
         fecha_fin: initialValues?.fecha_fin || '',
@@ -39,64 +43,96 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
         kilometraje_maximo: initialValues?.kilometraje_maximo,
         tipos_mantenimiento: initialValues?.tipos_mantenimiento || [],
         formato: initialValues?.formato || 'pdf'
-    });
+    }));
 
     const [showTypeSelector, setShowTypeSelector] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Cargar vehículos si no están cargados
+    // Cargar vehículos solo una vez
     useEffect(() => {
         if (vehicles.length === 0) {
             loadVehicles();
         }
-    }, [vehicles, loadVehicles]);
+    }, [vehicles.length, loadVehicles]);
 
-    // Actualizar valores cuando cambian los rangos
+    // Actualizar valores cuando cambian los rangos - con debounce implícito
     useEffect(() => {
         const updates: Partial<ReportFilter> = {};
+        let hasUpdates = false;
 
         if (dateRange) {
-            updates.fecha_inicio = dateRange.min;
-            updates.fecha_fin = dateRange.max;
+            if (dateRange.min !== filter.fecha_inicio) {
+                updates.fecha_inicio = dateRange.min;
+                hasUpdates = true;
+            }
+            if (dateRange.max !== filter.fecha_fin) {
+                updates.fecha_fin = dateRange.max;
+                hasUpdates = true;
+            }
         }
 
         if (kmRange) {
-            updates.kilometraje_minimo = kmRange.min;
-            updates.kilometraje_maximo = kmRange.max;
+            if (kmRange.min !== filter.kilometraje_minimo) {
+                updates.kilometraje_minimo = kmRange.min;
+                hasUpdates = true;
+            }
+            if (kmRange.max !== filter.kilometraje_maximo) {
+                updates.kilometraje_maximo = kmRange.max;
+                hasUpdates = true;
+            }
         }
 
-        if (Object.keys(updates).length > 0) {
+        if (hasUpdates) {
             setFilter(prev => ({
                 ...prev,
                 ...updates
             }));
         }
-    }, [dateRange, kmRange]);
+    }, [dateRange?.min, dateRange?.max, kmRange?.min, kmRange?.max]); // Dependencias específicas
 
-    // Actualizar valores iniciales cuando cambian
+    // Actualizar valores iniciales solo cuando realmente cambian
     useEffect(() => {
         if (initialValues) {
-            // Conservar solo los valores definidos para no sobrescribir todo
-            const definedValues: Partial<ReportFilter> = {};
+            const newFilter: Partial<ReportFilter> = {};
+            let hasChanges = false;
+
             Object.entries(initialValues).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
-                    definedValues[key as keyof ReportFilter] = value as any;
+                    const typedKey = key as keyof ReportFilter;
+                    if (filter[typedKey] !== value) {
+                        (newFilter[typedKey] as any) = value;
+                        hasChanges = true;
+                    }
                 }
             });
 
-            setFilter(prev => ({
-                ...prev,
-                ...definedValues
-            }));
+            if (hasChanges) {
+                setFilter(prev => ({
+                    ...prev,
+                    ...newFilter
+                }));
+            }
         }
-    }, [initialValues]);
+    }, [
+        initialValues?.id_vehiculo,
+        initialValues?.fecha_inicio,
+        initialValues?.fecha_fin,
+        initialValues?.kilometraje_minimo,
+        initialValues?.kilometraje_maximo,
+        initialValues?.formato
+    ]); // Solo dependencias específicas que realmente importan
 
-    // Actualizar un campo del filtro
-    const updateFilter = (field: keyof ReportFilter, value: any) => {
-        setFilter(prev => ({
-            ...prev,
-            [field]: value
-        }));
+    // Función optimizada para actualizar filtro
+    const updateFilter = useCallback((field: keyof ReportFilter, value: any) => {
+        setFilter(prev => {
+            // Solo actualizar si el valor realmente cambió
+            if (prev[field] === value) return prev;
+
+            return {
+                ...prev,
+                [field]: value
+            };
+        });
 
         // Eliminar error si existe
         if (errors[field]) {
@@ -106,10 +142,10 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                 return newErrors;
             });
         }
-    };
+    }, [errors]);
 
-    // Validar formulario
-    const validateForm = (): boolean => {
+    // Validar formulario - memorizada
+    const validateForm = useCallback((): boolean => {
         const newErrors: Record<string, string> = {};
 
         if (!filter.id_vehiculo) {
@@ -132,22 +168,18 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
+    }, [filter]);
 
     // Manejar envío del formulario
-    const handleSubmit = () => {
+    const handleSubmit = useCallback(() => {
         if (validateForm()) {
-            // Clonar el objeto filter para evitar referencias
-            const filterToSubmit = { ...filter };
-
-            // Eliminar campos vacíos o indefinidos para optimizar la petición
+            // Crear filtro limpio sin valores vacíos
             const cleanFilter: Partial<ReportFilter> = {};
 
-            // Solo incluir campos con valores válidos
-            Object.entries(filterToSubmit).forEach(([key, value]) => {
-                // Verificar que el valor no sea null, undefined, string vacío o array vacío
+            Object.entries(filter).forEach(([key, value]) => {
+                const typedKey = key as keyof ReportFilter;
+
                 if (value !== null && value !== undefined) {
-                    const typedKey = key as keyof ReportFilter;
                     if (Array.isArray(value)) {
                         if (value.length > 0) {
                             (cleanFilter[typedKey] as any) = value;
@@ -162,43 +194,39 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                 }
             });
 
-            // Asegurarnos de que id_vehiculo siempre se incluya, incluso si es 0
+            // Asegurar que id_vehiculo siempre esté incluido
             if (cleanFilter.id_vehiculo === undefined) {
-                cleanFilter.id_vehiculo = filterToSubmit.id_vehiculo;
+                cleanFilter.id_vehiculo = filter.id_vehiculo;
             }
 
-            console.log("Enviando filtro limpio:", cleanFilter);
             onSubmit(cleanFilter as ReportFilter);
         }
-    };
+    }, [filter, validateForm, onSubmit]);
 
-    // Manejar selección de tipos de mantenimiento
-    const handleTypesSelected = (ids: number[]) => {
+    // Manejar selección de tipos
+    const handleTypesSelected = useCallback((ids: number[]) => {
         updateFilter('tipos_mantenimiento', ids);
         setShowTypeSelector(false);
-    };
+    }, [updateFilter]);
 
-    // Obtener colores según el tema
-    const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
-    const subtitleColor = theme === 'dark' ? '#BBBBBB' : '#666666';
-    const bgColor = theme === 'dark' ? '#222222' : '#FFFFFF';
-    const borderColor = theme === 'dark' ? '#444444' : '#DDDDDD';
-
-    // Debug
-    useEffect(() => {
-        console.log("Current filter state:", filter);
-    }, [filter]);
+    // Obtener colores según el tema - memorizado
+    const themeColors = useMemo(() => ({
+        textColor: theme === 'dark' ? '#F9F9F9' : '#313131',
+        subtitleColor: theme === 'dark' ? '#BBBBBB' : '#666666',
+        bgColor: theme === 'dark' ? '#222222' : '#FFFFFF',
+        borderColor: theme === 'dark' ? '#444444' : '#DDDDDD'
+    }), [theme]);
 
     return (
         <View style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
                 {/* Selector de Vehículo */}
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Vehículo</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.textColor }]}>Vehículo</Text>
                 <View style={styles.selectContainer}>
-                    <Text style={[styles.label, { color: textColor }]}>Seleccione un vehículo *</Text>
+                    <Text style={[styles.label, { color: themeColors.textColor }]}>Seleccione un vehículo *</Text>
                     <View style={[
                         styles.vehicleSelector,
-                        { borderColor: errors.id_vehiculo ? '#CF6679' : borderColor, backgroundColor: bgColor }
+                        { borderColor: errors.id_vehiculo ? '#CF6679' : themeColors.borderColor, backgroundColor: themeColors.bgColor }
                     ]}>
                         {vehicles.map(vehicle => (
                             <Button
@@ -218,10 +246,10 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                 </View>
 
                 {/* Período de fechas */}
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Período</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.textColor }]}>Período</Text>
                 <View style={styles.row}>
                     <View style={styles.halfField}>
-                        <Text style={[styles.label, { color: textColor }]}>Desde</Text>
+                        <Text style={[styles.label, { color: themeColors.textColor }]}>Desde</Text>
                         <Input
                             value={filter.fecha_inicio || ''}
                             onChangeText={(text) => updateFilter('fecha_inicio', text)}
@@ -231,7 +259,7 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                         />
                     </View>
                     <View style={styles.halfField}>
-                        <Text style={[styles.label, { color: textColor }]}>Hasta</Text>
+                        <Text style={[styles.label, { color: themeColors.textColor }]}>Hasta</Text>
                         <Input
                             value={filter.fecha_fin || ''}
                             onChangeText={(text) => updateFilter('fecha_fin', text)}
@@ -243,10 +271,10 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                 </View>
 
                 {/* Rango de Kilometraje */}
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Kilometraje</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.textColor }]}>Kilometraje</Text>
                 <View style={styles.row}>
                     <View style={styles.halfField}>
-                        <Text style={[styles.label, { color: textColor }]}>Mínimo</Text>
+                        <Text style={[styles.label, { color: themeColors.textColor }]}>Mínimo</Text>
                         <Input
                             value={filter.kilometraje_minimo?.toString() || ''}
                             onChangeText={(text) => updateFilter('kilometraje_minimo', parseInt(text) || undefined)}
@@ -256,7 +284,7 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                         />
                     </View>
                     <View style={styles.halfField}>
-                        <Text style={[styles.label, { color: textColor }]}>Máximo</Text>
+                        <Text style={[styles.label, { color: themeColors.textColor }]}>Máximo</Text>
                         <Input
                             value={filter.kilometraje_maximo?.toString() || ''}
                             onChangeText={(text) => updateFilter('kilometraje_maximo', parseInt(text) || undefined)}
@@ -268,7 +296,7 @@ export const ReportFilterForm: React.FC<ReportFilterFormProps> = ({
                 </View>
 
                 {/* Selector de Tipos de Mantenimiento */}
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Tipos de Mantenimiento</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.textColor }]}>Tipos de Mantenimiento</Text>
                 <Button
                     buttonVariant="outline"
                     buttonSize="medium"

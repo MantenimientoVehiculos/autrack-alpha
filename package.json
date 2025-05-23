@@ -35,6 +35,9 @@
     "expo-symbols": "~0.4.4",
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.1.6",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
+    "papaparse": "^5.5.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hook-form": "^7.56.0",
@@ -51,11 +54,13 @@
     "react-native-webview": "13.13.5",
     "recharts": "^2.15.3",
     "socket.io-client": "^4.8.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/jest": "^29.5.12",
+    "@types/papaparse": "^5.3.16",
     "@types/react": "~18.3.12",
     "@types/react-native": "^0.72.8",
     "@types/react-test-renderer": "^18.3.0",

@@ -1,15 +1,17 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useAppTheme } from '@/src/shared/theme/ThemeProvider';
 import { Card } from '@/src/shared/components/ui/Card';
 import { ReportStatistics, ReportByType } from '../models/report';
+import { ExportFormatSelector } from './ExportFormatSelector';
 
 interface ReportCardProps {
     statistics: ReportStatistics;
     byType?: ReportByType[];
     vehicleName?: string;
     dateRange?: { start: string, end: string };
-    onExport?: () => void;
+    onExport?: (format: 'pdf' | 'excel' | 'csv') => Promise<{ success: boolean; error?: string; message?: string }>;
+    isExporting?: boolean;
 }
 
 export const ReportCard: React.FC<ReportCardProps> = ({
@@ -17,9 +19,12 @@ export const ReportCard: React.FC<ReportCardProps> = ({
     byType = [],
     vehicleName,
     dateRange,
-    onExport
+    onExport,
+    isExporting = false
 }) => {
     const { theme } = useAppTheme();
+    const [showFormatSelector, setShowFormatSelector] = useState(false);
+
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
     const secondaryTextColor = theme === 'dark' ? '#BBBBBB' : '#666666';
     const accentColor = theme === 'dark' ? '#B27046' : '#9D7E68';
@@ -27,145 +32,199 @@ export const ReportCard: React.FC<ReportCardProps> = ({
     const highlightBgColor = theme === 'dark' ? '#333333' : '#F9F9F9';
     const borderColor = theme === 'dark' ? '#444444' : '#EEEEEE';
 
-    // Formatear fechas
     const formatDate = (dateString?: string) => {
         if (!dateString) return '';
-
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString();
+            return date.toLocaleDateString('es-EC');
         } catch (error) {
             return dateString;
         }
     };
 
+    const handleExportClick = () => {
+        if (!onExport) return;
+        setShowFormatSelector(true);
+    };
+
+    const handleFormatSelected = async (format: 'pdf' | 'excel' | 'csv') => {
+        if (!onExport) return;
+
+        try {
+            const result = await onExport(format);
+
+            if (result.success) {
+                Alert.alert(
+                    'Éxito',
+                    result.message || `Reporte exportado en formato ${format.toUpperCase()}`,
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Error',
+                    result.error || 'No se pudo exportar el reporte',
+                    [{ text: 'OK' }]
+                );
+            }
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                'Ocurrió un error inesperado al exportar el reporte',
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setShowFormatSelector(false);
+        }
+    };
+
+    const handleFormatCancel = () => {
+        setShowFormatSelector(false);
+    };
+
     return (
-        <Card style={[styles.container, { backgroundColor: cardBgColor }]}>
-            {/* Encabezado con información del vehículo y período */}
-            {(vehicleName || dateRange) && (
-                <View style={styles.header}>
-                    {vehicleName && (
-                        <Text style={[styles.vehicleName, { color: textColor }]}>
-                            {vehicleName}
-                        </Text>
-                    )}
-
-                    {dateRange && (
-                        <View style={[styles.dateRangeContainer, { backgroundColor: highlightBgColor, borderColor }]}>
-                            <Text style={[styles.dateRangeLabel, { color: secondaryTextColor }]}>
-                                Período:
+        <>
+            <Card style={[styles.container, { backgroundColor: cardBgColor }]}>
+                {/* Encabezado con información del vehículo y período */}
+                {(vehicleName || dateRange) && (
+                    <View style={styles.header}>
+                        {vehicleName && (
+                            <Text style={[styles.vehicleName, { color: textColor }]}>
+                                {vehicleName}
                             </Text>
-                            <Text style={[styles.dateRange, { color: textColor }]}>
-                                {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            )}
+                        )}
 
-            {/* Estadísticas generales */}
-            <View style={[styles.statsContainer, { backgroundColor: highlightBgColor, borderColor }]}>
-                <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: textColor }]}>
-                        {statistics.total_registros}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
-                        Registros
-                    </Text>
-                </View>
-
-                <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-                <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: accentColor }]}>
-                        ${statistics.costo_total.toFixed(2)}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
-                        Costo Total
-                    </Text>
-                </View>
-
-                <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-                <View style={styles.statItem}>
-                    <Text style={[styles.statValue, { color: textColor }]}>
-                        ${statistics.costo_promedio.toFixed(2)}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
-                        Promedio
-                    </Text>
-                </View>
-            </View>
-
-            {/* Listado por tipo */}
-            {byType.length > 0 && (
-                <View style={styles.typesContainer}>
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>
-                        Resumen por Tipo
-                    </Text>
-
-                    {byType.slice(0, 4).map((type, index) => (
-                        <View
-                            key={type.id}
-                            style={[
-                                styles.typeItem,
-                                index !== byType.slice(0, 4).length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
-                            ]}
-                        >
-                            <View style={styles.typeInfo}>
-                                <Text
-                                    style={[styles.typeName, { color: textColor }]}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                >
-                                    {type.nombre}
+                        {dateRange && (
+                            <View style={[styles.dateRangeContainer, { backgroundColor: highlightBgColor, borderColor }]}>
+                                <Text style={[styles.dateRangeLabel, { color: secondaryTextColor }]}>
+                                    Período:
                                 </Text>
-                                <View style={styles.typeMetrics}>
-                                    <Text style={[styles.typeCount, { color: secondaryTextColor }]}>
-                                        {type.cantidad} {type.cantidad === 1 ? 'registro' : 'registros'}
+                                <Text style={[styles.dateRange, { color: textColor }]}>
+                                    {formatDate(dateRange.start)} - {formatDate(dateRange.end)}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                {/* Estadísticas generales */}
+                <View style={[styles.statsContainer, { backgroundColor: highlightBgColor, borderColor }]}>
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: textColor }]}>
+                            {statistics.total_registros}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
+                            Registros
+                        </Text>
+                    </View>
+
+                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: accentColor }]}>
+                            ${Number(statistics.costo_total).toFixed(2)}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
+                            Costo Total
+                        </Text>
+                    </View>
+
+                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: textColor }]}>
+                            ${Number(statistics.costo_promedio).toFixed(2)}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: secondaryTextColor }]}>
+                            Promedio
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Listado por tipo */}
+                {byType.length > 0 && (
+                    <View style={styles.typesContainer}>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>
+                            Resumen por Tipo
+                        </Text>
+
+                        {byType.slice(0, 4).map((type, index) => (
+                            <View
+                                key={type.id}
+                                style={[
+                                    styles.typeItem,
+                                    index !== byType.slice(0, 4).length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
+                                ]}
+                            >
+                                <View style={styles.typeInfo}>
+                                    <Text
+                                        style={[styles.typeName, { color: textColor }]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {type.nombre}
                                     </Text>
-                                    <Text style={[styles.typeCost, { color: accentColor }]}>
-                                        ${type.costo_total.toFixed(2)}
-                                    </Text>
+                                    <View style={styles.typeMetrics}>
+                                        <Text style={[styles.typeCount, { color: secondaryTextColor }]}>
+                                            {type.cantidad} {type.cantidad === 1 ? 'registro' : 'registros'}
+                                        </Text>
+                                        <Text style={[styles.typeCost, { color: accentColor }]}>
+                                            ${Number(type.costo_total || 0).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Indicador visual de porcentaje */}
+                                <View style={[styles.percentBar, { backgroundColor: highlightBgColor }]}>
+                                    <View
+                                        style={[
+                                            styles.percentFill,
+                                            {
+                                                width: `${(type.costo_total / statistics.costo_total) * 100}%`,
+                                                backgroundColor: accentColor
+                                            }
+                                        ]}
+                                    />
                                 </View>
                             </View>
+                        ))}
 
-                            {/* Indicador visual de porcentaje */}
-                            <View style={[styles.percentBar, { backgroundColor: highlightBgColor }]}>
-                                <View
-                                    style={[
-                                        styles.percentFill,
-                                        {
-                                            width: `${(type.costo_total / statistics.costo_total) * 100}%`,
-                                            backgroundColor: accentColor
-                                        }
-                                    ]}
-                                />
-                            </View>
-                        </View>
-                    ))}
+                        {byType.length > 4 && (
+                            <Text style={[styles.moreTypes, { color: accentColor }]}>
+                                + {byType.length - 4} más
+                            </Text>
+                        )}
+                    </View>
+                )}
 
-                    {byType.length > 4 && (
-                        <Text style={[styles.moreTypes, { color: accentColor }]}>
-                            + {byType.length - 4} más
+                {/* Botón de exportar */}
+                {onExport && (
+                    <TouchableOpacity
+                        style={[
+                            styles.exportButton,
+                            {
+                                backgroundColor: isExporting ? `${accentColor}80` : accentColor
+                            }
+                        ]}
+                        onPress={handleExportClick}
+                        activeOpacity={0.8}
+                        disabled={isExporting}
+                    >
+                        <Text style={styles.exportButtonText}>
+                            {isExporting ? 'Exportando...' : 'Exportar Reporte'}
                         </Text>
-                    )}
-                </View>
-            )}
+                    </TouchableOpacity>
+                )}
+            </Card>
 
-            {/* Botón de exportar */}
-            {onExport && (
-                <TouchableOpacity
-                    style={[styles.exportButton, { backgroundColor: accentColor }]}
-                    onPress={onExport}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.exportButtonText}>
-                        Exportar Reporte
-                    </Text>
-                </TouchableOpacity>
+            {/* Modal de selección de formato */}
+            {showFormatSelector && (
+                <ExportFormatSelector
+                    onFormatSelected={handleFormatSelected}
+                    onCancel={handleFormatCancel}
+                    isExporting={isExporting}
+                />
             )}
-        </Card>
+        </>
     );
 };
 

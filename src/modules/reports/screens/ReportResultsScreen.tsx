@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
-    Alert,
-    Share,
     TouchableOpacity
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -14,7 +12,7 @@ import { GradientHeader } from '@/src/shared/components/ui/GradientHeader';
 import { Button } from '@/src/shared/components/ui/Button';
 import { Card } from '@/src/shared/components/ui/Card';
 import { useVehicles } from '@/src/modules/vehicles/hooks/useVehicles';
-import { useReports } from '../hooks/useReports';
+import { useReports } from '../context/ReportsProvider';
 import ReportCard from '../components/ReportCard';
 import ReportChart from '../components/ReportChart';
 import ReportResults from '../components/ReportResults';
@@ -25,6 +23,8 @@ export const ReportResultsScreen: React.FC = () => {
     const { vehicles } = useVehicles();
     const { reportState, exportReport } = useReports();
     const [activeTab, setActiveTab] = useState<'summary' | 'charts' | 'details'>('summary');
+    const [vehicleName, setVehicleName] = useState<string | undefined>(undefined);
+    const [dateRange, setDateRange] = useState<{ start: string; end: string } | undefined>(undefined);
 
     // Colores según el tema
     const textColor = theme === 'dark' ? '#F9F9F9' : '#313131';
@@ -36,92 +36,82 @@ export const ReportResultsScreen: React.FC = () => {
     const activeBorderColor = accentColor;
     const inactiveTextColor = theme === 'dark' ? '#777777' : '#999999';
 
-    // Verificar que hay resultados
-    if (!reportState.result) {
-        // Redirigir a la pantalla de filtros si no hay resultados
-        router.replace('/reports/filters');
-        return null;
-    }
+    // Efecto para calcular valores derivados una sola vez
+    useEffect(() => {
+        if (reportState.filter.id_vehiculo && vehicles.length > 0) {
+            const vehicle = vehicles.find(v => v.id_vehiculo === reportState.filter.id_vehiculo);
+            if (vehicle) {
+                const name = `${vehicle.marca?.nombre || ''} ${vehicle.modelo?.nombre || ''} (${vehicle.placa})`;
+                setVehicleName(name);
+            }
+        }
 
-    // Manejar exportación de reporte
-    const handleExportReport = async () => {
-        const formato = reportState.filter.formato || 'pdf';
+        if (reportState.filter.fecha_inicio && reportState.filter.fecha_fin) {
+            setDateRange({
+                start: reportState.filter.fecha_inicio,
+                end: reportState.filter.fecha_fin
+            });
+        }
+    }, [reportState.filter.id_vehiculo, reportState.filter.fecha_inicio, reportState.filter.fecha_fin, vehicles]);
 
-        Alert.alert(
-            'Exportar reporte',
-            `¿Deseas exportar el reporte en formato ${formato.toUpperCase()}?`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Exportar',
-                    onPress: async () => {
-                        const result = await exportReport(formato);
+    // Verificar que hay resultados - usar useEffect para redirigir
+    useEffect(() => {
+        if (!reportState.result && !reportState.isGenerating) {
+            // Pequeño delay para evitar problemas de renderizado
+            const timer = setTimeout(() => {
+                router.replace('/reports/filters');
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [reportState.result, reportState.isGenerating, router]);
 
-                        if (result.success) {
-                            Alert.alert(
-                                'Éxito',
-                                'El reporte se ha exportado correctamente',
-                                [
-                                    { text: 'OK' },
-                                    {
-                                        text: 'Compartir',
-                                        onPress: () => {
-                                            if (result.data?.url) {
-                                                Share.share({
-                                                    url: result.data.url,
-                                                    title: 'Reporte de Mantenimiento',
-                                                    message: 'Compartir reporte de mantenimiento'
-                                                });
-                                            }
-                                        }
-                                    }
-                                ]
-                            );
-                        } else {
-                            Alert.alert('Error', result.error || 'No se pudo exportar el reporte');
-                        }
-                    }
-                }
-            ]
-        );
-    };
+    // Manejar exportación de reporte - usar useCallback
+    const handleExportReport = useCallback(async (format: 'pdf' | 'excel' | 'csv') => {
+        if (!vehicleName) {
+            return { success: false, error: 'No se pudo obtener el nombre del vehículo' };
+        }
 
-    // Volver a los filtros
-    const handleBackToFilters = () => {
+        return await exportReport(format, vehicleName);
+    }, [exportReport, vehicleName]);
+
+    // Volver a los filtros - usar useCallback
+    const handleBackToFilters = useCallback(() => {
         router.push('/reports/filters');
-    };
+    }, [router]);
 
-    // Obtener información del vehículo seleccionado
-    const getSelectedVehicleName = () => {
-        if (!reportState.filter.id_vehiculo) return undefined;
-
-        const vehicle = vehicles.find(v => v.id_vehiculo === reportState.filter.id_vehiculo);
-        if (!vehicle) return undefined;
-
-        return `${vehicle.marca?.nombre || ''} ${vehicle.modelo?.nombre || ''} (${vehicle.placa})`;
-    };
-
-    // Obtener fechas seleccionadas
-    const getDateRange = () => {
-        if (!reportState.filter.fecha_inicio || !reportState.filter.fecha_fin) return undefined;
-
-        return {
-            start: reportState.filter.fecha_inicio,
-            end: reportState.filter.fecha_fin
-        };
-    };
-
-    // Transformar los datos para los gráficos
-    const prepareChartData = () => {
+    // Transformar los datos para los gráficos - usar useMemo o función pura
+    const prepareChartData = useCallback(() => {
         if (!reportState.result?.por_tipo) return [];
 
         return reportState.result.por_tipo.map(item => ({
             name: item.nombre,
             value: item.costo_total
         }));
-    };
+    }, [reportState.result?.por_tipo]);
 
     const chartData = prepareChartData();
+
+    // Si no hay resultado y no está cargando, no renderizar nada (la redirección se maneja en useEffect)
+    if (!reportState.result && !reportState.isGenerating) {
+        return null;
+    }
+
+    // Si está cargando, mostrar loading
+    if (reportState.isGenerating) {
+        return (
+            <View style={[styles.container, { backgroundColor: bgColor }]}>
+                <GradientHeader
+                    title="Generando Reporte"
+                    showBackButton={true}
+                />
+                <View style={styles.loadingContainer}>
+                    <Text style={[styles.loadingText, { color: textColor }]}>
+                        Generando reporte...
+                    </Text>
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -188,14 +178,6 @@ export const ReportResultsScreen: React.FC = () => {
                     >
                         Editar filtros
                     </Button>
-
-                    <Button
-                        buttonVariant="outline"
-                        buttonSize="small"
-                        onPress={handleExportReport}
-                    >
-                        Exportar
-                    </Button>
                 </View>
 
                 {reportState.result && (
@@ -205,9 +187,10 @@ export const ReportResultsScreen: React.FC = () => {
                             <ReportCard
                                 statistics={reportState.result.estadisticas}
                                 byType={reportState.result.por_tipo}
-                                vehicleName={getSelectedVehicleName()}
-                                dateRange={getDateRange()}
+                                vehicleName={vehicleName}
+                                dateRange={dateRange}
                                 onExport={handleExportReport}
+                                isExporting={reportState.isExporting}
                             />
                         )}
 
@@ -243,6 +226,17 @@ export const ReportResultsScreen: React.FC = () => {
                                     type="bar"
                                     valuePrefix="$"
                                 />
+
+                                {/* Botón de exportar en la sección de gráficos */}
+                                <Button
+                                    buttonVariant="primary"
+                                    buttonSize="large"
+                                    onPress={() => handleExportReport('pdf')}
+                                    isLoading={reportState.isExporting}
+                                    style={styles.exportButton}
+                                >
+                                    Exportar con Gráficos
+                                </Button>
                             </View>
                         )}
 
@@ -259,18 +253,19 @@ export const ReportResultsScreen: React.FC = () => {
                                     records={reportState.result.registros}
                                     title={`Registros (${reportState.result.registros.length})`}
                                 />
+
+                                {/* Botón de exportar en la sección de detalles */}
+                                <Button
+                                    buttonVariant="primary"
+                                    buttonSize="large"
+                                    onPress={() => handleExportReport('excel')}
+                                    isLoading={reportState.isExporting}
+                                    style={styles.exportButton}
+                                >
+                                    Exportar Detalles
+                                </Button>
                             </View>
                         )}
-
-                        {/* Botón para exportar siempre visible al final */}
-                        <Button
-                            buttonVariant="primary"
-                            buttonSize="large"
-                            onPress={handleExportReport}
-                            style={styles.exportButton}
-                        >
-                            Exportar Reporte
-                        </Button>
                     </>
                 )}
 
@@ -298,6 +293,15 @@ export const ReportResultsScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        fontSize: 16,
+        textAlign: 'center',
     },
     scrollContainer: {
         flex: 1,
@@ -364,7 +368,7 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     exportButton: {
-        marginVertical: 24,
+        marginVertical: 16,
     },
 });
 

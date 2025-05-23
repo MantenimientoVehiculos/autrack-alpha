@@ -243,8 +243,6 @@ export const StatisticsScreen: React.FC = () => {
                             </Text>
                             <StatisticsPieChart
                                 data={categoryData}
-                                colors={pastelColors}
-                                borderColors={borderColors}
                             />
                         </View>
                     </>
@@ -330,8 +328,6 @@ export const StatisticsScreen: React.FC = () => {
 
                             <StatisticsPieChart
                                 data={categoryData}
-                                colors={pastelColors}
-                                borderColors={borderColors}
                             />
                         </View>
 
@@ -371,14 +367,14 @@ export const StatisticsScreen: React.FC = () => {
 
                                     <View style={styles.categoryProportion}>
                                         <Text style={[styles.categoryPercent, { color: secondaryTextColor }]}>
-                                            {((category.value / completeCostStats.overall_total_cost) * 100).toFixed(1)}%
+                                            {((category.value / completeCostStats!.overall_total_cost) * 100).toFixed(1)}%
                                         </Text>
                                         <View style={[styles.progressBarBg, { backgroundColor: `${accentColor}20` }]}>
                                             <View
                                                 style={[
                                                     styles.progressBarFill,
                                                     {
-                                                        width: `${(category.value / completeCostStats.overall_total_cost) * 100}%`,
+                                                        width: `${(category.value / completeCostStats!.overall_total_cost) * 100}%`,
                                                         backgroundColor: category.color
                                                     }
                                                 ]}

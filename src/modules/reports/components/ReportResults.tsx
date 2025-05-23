@@ -44,7 +44,7 @@ export const ReportResults: React.FC<ReportResultsProps> = ({
                     {item.tipo_mantenimiento.nombre}
                 </Text>
                 <Text style={[styles.recordCost, { color: accentColor }]}>
-                    ${item.costo.toFixed(2)}
+                    ${Number(item.costo).toFixed(2)}
                 </Text>
             </View>
 
