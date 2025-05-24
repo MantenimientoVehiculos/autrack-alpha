@@ -16,6 +16,7 @@ import { useReports } from '../context/ReportsProvider';
 import ReportCard from '../components/ReportCard';
 import ReportChart from '../components/ReportChart';
 import ReportResults from '../components/ReportResults';
+import { useInterstitialAd } from '@/src/shared/context/InterstitialAdContext';
 
 export const ReportResultsScreen: React.FC = () => {
     const router = useRouter();
@@ -35,6 +36,14 @@ export const ReportResultsScreen: React.FC = () => {
     const borderColor = theme === 'dark' ? '#444444' : '#EEEEEE';
     const activeBorderColor = accentColor;
     const inactiveTextColor = theme === 'dark' ? '#777777' : '#999999';
+
+    const { showAd, isLoaded } = useInterstitialAd(); // 1. Usa el contexto
+
+    useEffect(() => {
+        if (isLoaded && !__DEV__) {
+            showAd();
+        }
+    }, [isLoaded]); // solo se ejecuta una vez cuando el ad esté listo
 
     // Efecto para calcular valores derivados una sola vez
     useEffect(() => {
@@ -57,11 +66,7 @@ export const ReportResultsScreen: React.FC = () => {
     // Verificar que hay resultados - usar useEffect para redirigir
     useEffect(() => {
         if (!reportState.result && !reportState.isGenerating) {
-            // Pequeño delay para evitar problemas de renderizado
-            const timer = setTimeout(() => {
-                router.replace('/reports/filters');
-            }, 300);
-            return () => clearTimeout(timer);
+            router.replace('/reports/filters');
         }
     }, [reportState.result, reportState.isGenerating, router]);
 

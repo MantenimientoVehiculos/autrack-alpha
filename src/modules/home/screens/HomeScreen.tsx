@@ -19,6 +19,7 @@ import VehicleCarousel from '../components/VehicleCarousel';
 import MaintenanceList from '../components/MaintenanceList';
 import SectionHeader from '../components/SectionHeader';
 import ReportsSummaryWidget from '../../reports/components/ReportsSummaryWidget';
+import { useInterstitialAd } from '@/src/shared/context/InterstitialAdContext';
 
 // Obtener dimensiones de la pantalla
 const HEADER_MAX_HEIGHT = 200; // Altura máxima del header
@@ -39,6 +40,7 @@ const HomeScreen: React.FC = () => {
         activeVehicleIndex,
         handleVehicleChange
     } = useHome();
+
 
     // Navegación a la pantalla de notificaciones
     const navigateToNotifications = () => {
@@ -92,7 +94,7 @@ const HomeScreen: React.FC = () => {
             >
                 {/* Sección de Vehículos con Carrusel */}
                 <View style={styles.section}>
-
+                    
                     {/* Carrusel de vehículos */}
                     <VehicleCarousel
                         vehicles={vehicles}
